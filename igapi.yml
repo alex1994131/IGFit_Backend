@@ -1,0 +1,21 @@
+version: 1.0
+provider:
+  name: openfaas
+  gateway: http://127.0.0.1:8080
+functions:
+  igapi:
+    lang: node12new
+    handler: ./igapi
+    image: registry.tyap.cloud/igapi:latest
+    environment:
+      read_timeout: 60s
+      write_timeout: 60s
+      mongo: 10.62.0.1
+  igapi2:
+    lang: node12new
+    handler: ./igapi2
+    image: registry.tyap.cloud/igapi2:latest
+    environment:
+      read_timeout: 60s
+      write_timeout: 60s
+      mongo: 10.62.0.1

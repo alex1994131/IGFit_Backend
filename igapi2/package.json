@@ -1,0 +1,19 @@
+{
+  "name": "openfaas-function",
+  "version": "1.0.0",
+  "description": "OpenFaaS Function",
+  "main": "handler.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 0"
+  },
+  "keywords": [],
+  "author": "OpenFaaS Ltd",
+  "license": "MIT",
+  "dependencies": {
+    "ig-trading-api": "^0.8.1",
+    "mongodb": "^3.0.5",
+    "node-fetch": "^2.6.1",
+    "util": "^0.12.3",
+    "yahoo-finance": "^0.3.6"
+  }
+}

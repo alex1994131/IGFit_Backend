@@ -1,0 +1,40 @@
+version: 1.0
+provider:
+  name: openfaas
+  gateway: http://127.0.0.1:8080
+functions:
+  pocketsmithtx:
+    lang: node12new
+    handler: ./pocketsmithapi
+    image: registry.tyap.cloud/pocketsmithapi:latest
+    environment:
+      read_timeout: 60s
+      write_timeout: 120s
+      exec_timeout: 0s
+      mongo: 10.62.0.1
+  pocketsmithtx2:
+    lang: node12new
+    handler: ./pocketsmithapi2
+    image: registry.tyap.cloud/pocketsmithapi2:latest
+    environment:
+      read_timeout: 60s
+      write_timeout: 60s
+      mongo: 10.62.0.1
+  pocketsmithtx3:
+    lang: node12new
+    handler: ./pocketsmithapi3
+    image: registry.tyap.cloud/pocketsmithapi3:latest
+    environment:
+      read_timeout: 60s
+      write_timeout: 60s
+      mongo: 10.62.0.1
+  gettotal:
+    lang: node12new
+    handler: ./gettotal
+    image: registry.tyap.cloud/gettotal:latest
+    environment:
+      read_timeout: 60s
+      write_timeout: 60s
+      mongo: 10.62.0.1
+      
+
