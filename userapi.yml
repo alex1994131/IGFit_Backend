@@ -1,0 +1,13 @@
+version: 1.0
+provider:
+  name: openfaas
+  gateway: http://127.0.0.1:8080
+functions:
+  userapi:
+    lang: node10-express-service
+    handler: ./userapi
+    image: registry.tyap.cloud/userapi:latest
+    environment:
+      read_timeout: 60s
+      write_timeout: 60s
+
