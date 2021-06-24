@@ -1,39 +1,24 @@
-import { Schema, model } from 'mongoose'
-import bcrypt from 'bcrypt-nodejs'
-import { getTimeZone } from '../controllers/baseController'
+// import { Schema, model } from 'mongoose'
+// import bcrypt from 'bcrypt-nodejs'
+
+const { Schema, model } = require('mongoose')
+const bcrypt = require('bcrypt-nodejs')
 
 const usersSchema = new Schema({
+	username: {
+		type: String,
+		require: true
+	},
 	email: {
 		type: String,
 		require: true
 	},
 	password: {
-		type: String
-	},
-	username: {
 		type: String,
 		require: true
 	},
-	firstname: {
-		type: String,
-		default: ''
-	},
-	lastname: {
-		type: String,
-		default: ''
-	},
-	status: {
-		type: String,
-		default: 'active'
-	},
-	createdAt: {
-		type: Date
-	},
-	updatedAt: {
-		type: Date
-	},
-	roleid: {
-		type: Schema.Types.ObjectId, ref: 'role',
+	portfolio: {
+		type: Object,
 		require: true
 	}
 })
@@ -45,8 +30,6 @@ usersSchema.pre('save', function (next) {
 		bcrypt.hash(user.password, salt, null, (err, hash) => {
 			if (err) { return next(err) }
 			user.password = hash
-			user.createdAt = getTimeZone()
-			user.updatedAt = getTimeZone()
 			next()
 		})
 	})
@@ -67,10 +50,10 @@ usersSchema.methods.validPassword = function (password, encrypted) {
 	return bcrypt.compareSync(password, encrypted)
 }
 
-export const Users = model('users', usersSchema)
+const UserModel = model('users', usersSchema)
 
 const SessionSchema = new Schema({
-	userid: {
+	user_id: {
 		type: Schema.Types.ObjectId, ref: 'users',
 		require: true
 	},
@@ -88,4 +71,6 @@ const SessionSchema = new Schema({
 	},
 })
 
-export const Sessions = model('sessions', SessionSchema)
+const SessionModel = model('sessions', SessionSchema)
+
+module.exports = { UserModel, SessionModel };

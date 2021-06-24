@@ -1,9 +1,16 @@
 "use strict"
 
+const config = require('./config');
+const cors = require('cors');
+const bodyParser = require('body-parser')
+const md5 = require('md5')
+
+// import md5 from 'md5'
 // import { Types } from 'mongoose'
 // import { UserModel, SessionModel } from "./models"
-import config from "./config"
 
+const { Types } = require('mongoose');
+const { UserModel, SessionModel } = require('./model')
 
 module.exports = async (config) => {
     const routing = new Routing(config.app);
@@ -11,18 +18,20 @@ module.exports = async (config) => {
     routing.bind(routing.handle);
 }
 
+let self = null;
 class Routing {
     constructor(app) {
         this.app = app;
-        config.connection()
+        const connection = config.connection;
+        self = this;
     }
 
     configure() {
-        const bodyParser = require('body-parser')
         this.app.use(bodyParser.json());
         this.app.use(bodyParser.raw());
         this.app.use(bodyParser.text({ type: "text/*" }));
         this.app.disable('x-powered-by');
+        this.app.use(cors());
     }
 
     bind(route) {
@@ -44,14 +53,14 @@ class Routing {
         })
     }
 
-    async signAccessToken(req, users_id) {
-        const expiredtime = getExpiredtime()
-        const token = md5(users_id + expiredtime)
-        const ip = getIPAddress(req)
+    async signAccessToken(req, user_id) {
+        const expiredtime = self.getExpiredtime()
+        const token = md5(user_id + expiredtime)
+        const ip = self.getIPAddress(req)
         const row = {
-            ip, token, expiredtime, userid: Types.ObjectId(users_id)
+            ip, token, expiredtime, user_id: Types.ObjectId(user_id)
         }
-        await Create(row, Models.Sessions)
+        await self.create(row, SessionModel)
         return token
     }
 
@@ -77,66 +86,72 @@ class Routing {
         return ips && ips.length > 0 && ips.indexOf(",") ? ips.split(",")[0] : null
     }
 
-    handle(req, res, next) {
-        res.send(req.path);
-        // if (req.path == '/signin') {
-        //     res.send(req.path);
+    async handle(req, res, next) {
+        if (req.path == '/signin') {
+            const user = req.body;
 
-        //     // const user = req.body
-        //     // if (!user.password || (!user.email)) {
-        //     //     return res.json({ status: false, data: "Please enter username and password" })
-        //     // }
-        //     // const userInfo = await Models.Users.findOne({ $or: [{ username: user.email }, { email: user.email }] })
-        //     // if (!userInfo) {
-        //     //     return res.json({ status: false, data: "Sorry, we can't find this email or username." })
-        //     // }
-        //     // if (!userInfo.validPassword(user.password, userInfo.password)) {
-        //     //     return res.json({ status: false, data: 'You entered wrong password.' })
-        //     // }
-        //     // const session = await signAccessToken(req, userInfo._id)
-        //     // const row = {
-        //     //     email: userInfo.email,
-        //     //     username: userInfo.username,
-        //     //     firstname: userInfo.firstname,
-        //     //     lastname: userInfo.lastname,
-        //     //     role: BaseCon.getRole(userInfo.roleid),
-        //     // }
-        //     // return res.json({ status: true, user: row, accessToken: session })
-        // }
-        // else if (req.path == '/signup') {
-        //     // const user = req.body
+            console.log(user);
 
-        //     // if (!user.username || !user.email || !user.password) {
-        //     //     return res.json({ status: false, data: 'Please enter username and password' })
-        //     // }
-        //     // const emailExit = await Models.Users.findOne({ email: user.email })
-        //     // if (emailExit) {
-        //     //     return res.json({ status: false, data: 'It have already created' })
-        //     // }
-        //     // const usernameExit = await Models.Users.findOne({ username: user.username })
-        //     // if (usernameExit) {
-        //     //     return res.json({ status: false, data: 'It have already created' })
-        //     // }
-        //     // const result = await Create(user, Models.Users)
-        //     // if (!result) {
-        //     //     return res.json({ status: false, data: 'Internal server error' })
-        //     // } else {
-        //     //     const session = await signAccessToken(req, result._id)
-        //     //     const row = {
-        //     //         email: result.email,
-        //     //         username: result.username,
-        //     //         firstname: result.firstname,
-        //     //         lastname: result.lastname,
-        //     //         role: BaseCon.getRole(result.roleid),
-        //     //     }
-        //     //     return res.json({ status: true, user: row, accessToken: session })
-        //     // }
-        // }
-        // else if (req.path == 'signout') {
-        //     // const accessToken = req.headers.authorization
-        //     // await Models.Sessions.findOneAndDelete({ token: accessToken })
-        //     // return res.json({ status: false, session: true })
-        // }
+            const userInfo = await UserModel.findOne({ email: user.email })
+            if (!userInfo) {
+                return res.json({ status: false, message: "Sorry, we can't find this email or username." })
+            }
+            if (!userInfo.validPassword(user.password, userInfo.password)) {
+                return res.json({ status: false, message: 'You entered wrong password.' })
+            }
+            const session = await self.signAccessToken(req, userInfo._id)
+            const row = {
+                email: userInfo.email,
+                username: userInfo.username,
+                portofolio: userInfo.portofolio
+            }
+            return res.json({ status: true, user: row, accessToken: session })
+        }
+        else if (req.path == '/signup') {
+            const user = req.body
+
+            const emailExit = await UserModel.findOne({ email: user.email })
+            if (emailExit) {
+                return res.json({ status: false, message: 'It have already created' })
+            }
+
+            const result = await self.create(user, UserModel)
+            if (!result) {
+                return res.json({ status: false, message: 'Internal server error' })
+            } else {
+                return res.json({ status: true, message: 'Sign up success' })
+            }
+        }
+        if (req.path == '/get_user') {
+            const token = req.body;
+            const accessToken = token.token
+
+            const session_record = await SessionModel.findOne({ token: accessToken })
+            const user_id = session_record.user_id
+            if (!user_id) {
+                return res.json({ status: false, data: "Sorry, we can't find Session record." })
+            }
+
+            const userInfo = await UserModel.findById(user_id)
+            if (!userInfo) {
+                return res.json({ status: false, data: "Sorry, we can't find user record." })
+            }
+
+            const row = {
+                email: userInfo.email,
+                username: userInfo.username,
+                portofolio: userInfo.portofolio
+            }
+
+            return res.json({ status: true, user: row })
+        }
+        else if (req.path == '/signout') {
+            const token = req.body;
+            const accessToken = token.token
+
+            await SessionModel.findOneAndDelete({ token: accessToken })
+            return res.json({ status: true })
+        }
         // else if (req.path == 'changePassword') {
         //     // const { users_id, newPassword, currentPassword } = req.body
         //     // const user = await Models.Users.findById(users_id)

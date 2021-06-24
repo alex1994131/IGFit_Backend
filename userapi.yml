@@ -4,7 +4,7 @@ provider:
   gateway: http://127.0.0.1:8080
 functions:
   userapi:
-    lang: node10-express-service
+    lang: node14-express-service
     handler: ./userapi
     image: registry.tyap.cloud/userapi:latest
     environment:
