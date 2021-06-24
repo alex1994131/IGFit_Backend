@@ -1,8 +1,6 @@
-// import { Schema, model } from 'mongoose'
-// import bcrypt from 'bcrypt-nodejs'
-
 const { Schema, model } = require('mongoose')
 const bcrypt = require('bcrypt-nodejs')
+const { getTimeZone } = require('./helper')
 
 const usersSchema = new Schema({
 	username: {
@@ -20,6 +18,12 @@ const usersSchema = new Schema({
 	portfolio: {
 		type: Object,
 		require: true
+	},
+	createdAt: {
+		type: Date
+	},
+	updatedAt: {
+		type: Date
 	}
 })
 
@@ -30,6 +34,8 @@ usersSchema.pre('save', function (next) {
 		bcrypt.hash(user.password, salt, null, (err, hash) => {
 			if (err) { return next(err) }
 			user.password = hash
+			user.createdAt = getTimeZone()
+			user.updatedAt = getTimeZone()
 			next()
 		})
 	})
