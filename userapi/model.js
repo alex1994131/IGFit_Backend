@@ -96,10 +96,23 @@ const PortfolioSchema = new Schema({
 		type: String,
 		require: true
 	},
-	expiredtime: {
+	created_at: {
+		type: Date,
+		require: true
+	},
+	updated_at: {
 		type: Date,
 		require: true
 	}
+})
+
+PortfolioSchema.pre('save', function (next) {
+	const user = this
+	user.value = 0
+	user.profit = 0
+	user.created_at = getTimeZone()
+	user.updated_at = getTimeZone()
+	next()
 })
 
 const PortfolioModel = model('portfolios', PortfolioSchema)

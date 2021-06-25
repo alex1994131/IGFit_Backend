@@ -103,16 +103,33 @@ class Routing {
             return res.json({ status: true })
         }
         else if (req.path == '/get_portfolio') {
-            console.log('aaaaaaaaaaaaaaa')
-            return res.json({ status: true })
-            // const user_id = await sessionUpdate(req, SessionModel);
-            // if (user_id) {
-            //     const result = await getPortfolio(user_id, PortfolioModel);
-            //     return res.json({ status: true, data: result })
-            // }
-            // else {
-            //     return res.json({ status: false, message: "Sorry, we can't find user record." })
-            // }
+            const user_id = await sessionUpdate(req, SessionModel);
+            if (user_id) {
+                const result = await getPortfolio(user_id, PortfolioModel);
+                return res.json({ status: true, data: result })
+            }
+            else {
+                return res.json({ status: false, message: "Sorry, we can't find user record." })
+            }
+        }
+        else if (req.path == '/new_portfolio') {
+            const portfolio = req.body;
+
+            const user_id = await sessionUpdate(req, SessionModel);
+            if (user_id) {
+                portfolio.user_id = user_id;
+
+                const result = await create(portfolio, PortfolioModel)
+                if (!result) {
+                    return res.json({ status: false, flag: 2, message: 'Internal server error' })
+                } else {
+                    const ports = await getPortfolio(user_id, PortfolioModel);
+                    return res.json({ status: true, data: ports })
+                }
+            }
+            else {
+                return res.json({ status: false, flag: 1, message: "Sorry, we can't find user record." })
+            }
         }
         // else if (req.path == 'changePassword') {
         //     // const { users_id, newPassword, currentPassword } = req.body

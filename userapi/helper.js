@@ -28,13 +28,10 @@ const signAccessToken = async (req, user_id, model) => {
 
 const sessionUpdate = async (req, model) => {
     const accessToken = req.headers.authorization
-
-
-    console.log(accessToken);
-    if (accessToken && accessToken.length) {
-        // const d = await sessionUpdate(accessToken, SessionModel)
+    const token = accessToken.split(' ')[1]
+    if (token && token.length) {
         const expiredtime = getExpiredtime()
-        const ses = await model.findOneAndUpdate({ accessToken }, { expiredtime }).populate("user_id")
+        const ses = await model.findOneAndUpdate({ token }, { expiredtime }).populate("user_id")
         if (ses) {
             return ses.user_id
         } else {
@@ -57,7 +54,7 @@ const getIPAddress = (req) => {
 }
 
 const getTimeZone = () => {
-    let time = moment.tz(new Date(), "Asia/Kolkata")
+    let time = moment.tz(new Date(), "Europe/London")
     time.utc("+530").format()
     return time
 }
