@@ -7,8 +7,8 @@ const bodyParser = require('body-parser')
 // import { Types } from 'mongoose'
 // import { UserModel, SessionModel } from "./models"
 
-const { UserModel, SessionModel } = require('./model')
-const { create, signAccessToken } = require('./helper')
+const { UserModel, SessionModel, PortfolioModel } = require('./model')
+const { create, signAccessToken, sessionUpdate, getPortfolio } = require('./helper')
 
 module.exports = async (config) => {
     const routing = new Routing(config.app);
@@ -72,19 +72,19 @@ class Routing {
                 return res.json({ status: true, message: 'Sign up success' })
             }
         }
-        if (req.path == '/get_user') {
+        else if (req.path == '/get_user') {
             const token = req.body;
             const accessToken = token.token
 
             const session_record = await SessionModel.findOne({ token: accessToken })
             const user_id = session_record.user_id
             if (!user_id) {
-                return res.json({ status: false, data: "Sorry, we can't find Session record." })
+                return res.json({ status: false, message: "Sorry, we can't find Session record." })
             }
 
             const userInfo = await UserModel.findById(user_id)
             if (!userInfo) {
-                return res.json({ status: false, data: "Sorry, we can't find user record." })
+                return res.json({ status: false, message: "Sorry, we can't find user record." })
             }
 
             const row = {
@@ -101,6 +101,18 @@ class Routing {
 
             await SessionModel.findOneAndDelete({ token: accessToken })
             return res.json({ status: true })
+        }
+        else if (req.path == '/get_portfolio') {
+            console.log('aaaaaaaaaaaaaaa')
+            return res.json({ status: true })
+            // const user_id = await sessionUpdate(req, SessionModel);
+            // if (user_id) {
+            //     const result = await getPortfolio(user_id, PortfolioModel);
+            //     return res.json({ status: true, data: result })
+            // }
+            // else {
+            //     return res.json({ status: false, message: "Sorry, we can't find user record." })
+            // }
         }
         // else if (req.path == 'changePassword') {
         //     // const { users_id, newPassword, currentPassword } = req.body

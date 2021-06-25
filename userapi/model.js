@@ -79,4 +79,29 @@ const SessionSchema = new Schema({
 
 const SessionModel = model('sessions', SessionSchema)
 
-module.exports = { UserModel, SessionModel };
+const PortfolioSchema = new Schema({
+	user_id: {
+		type: Schema.Types.ObjectId, ref: 'users',
+		require: true
+	},
+	name: {
+		type: String,
+		require: true
+	},
+	value: {
+		type: String,
+		require: true
+	},
+	profit: {
+		type: String,
+		require: true
+	},
+	expiredtime: {
+		type: Date,
+		require: true
+	}
+})
+
+const PortfolioModel = model('portfolios', PortfolioSchema)
+
+module.exports = { UserModel, SessionModel, PortfolioModel };

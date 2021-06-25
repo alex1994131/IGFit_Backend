@@ -26,12 +26,20 @@ const signAccessToken = async (req, user_id, model) => {
     return token
 }
 
-const sessionUpdate = async (token) => {
-    const expiredtime = getExpiredtime()
-    const ses = await Models.Sessions.findOneAndUpdate({ token }, { expiredtime }).populate("userid")
-    console.log("updatesession")
-    if (ses) {
-        return ses.userid
+const sessionUpdate = async (req, model) => {
+    const accessToken = req.headers.authorization
+
+
+    console.log(accessToken);
+    if (accessToken && accessToken.length) {
+        // const d = await sessionUpdate(accessToken, SessionModel)
+        const expiredtime = getExpiredtime()
+        const ses = await model.findOneAndUpdate({ accessToken }, { expiredtime }).populate("user_id")
+        if (ses) {
+            return ses.user_id
+        } else {
+            return false
+        }
     } else {
         return false
     }
@@ -54,4 +62,9 @@ const getTimeZone = () => {
     return time
 }
 
-module.exports = { create, signAccessToken, sessionUpdate, getExpiredtime, getIPAddress, getTimeZone };
+const getPortfolio = async (user_id, model) => {
+    let result = await model.find({ user_id: user_id })
+    return result
+}
+
+module.exports = { create, signAccessToken, sessionUpdate, getExpiredtime, getIPAddress, getTimeZone, getPortfolio };
