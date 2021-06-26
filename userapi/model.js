@@ -16,8 +16,8 @@ const usersSchema = new Schema({
 		require: true
 	},
 	portfolio: {
-		type: Object,
-		require: true
+		type: Array,
+		default: []
 	},
 	createdAt: {
 		type: Date

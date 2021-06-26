@@ -8,7 +8,7 @@ const bodyParser = require('body-parser')
 // import { UserModel, SessionModel } from "./models"
 
 const { UserModel, SessionModel, PortfolioModel } = require('./model')
-const { create, signAccessToken, sessionUpdate, getPortfolio } = require('./helper')
+const { create, signAccessToken, sessionUpdate, getPortfolio, updateUserByPortfolio } = require('./helper')
 
 module.exports = async (config) => {
     const routing = new Routing(config.app);
@@ -123,6 +123,11 @@ class Routing {
                 if (!result) {
                     return res.json({ status: false, flag: 2, message: 'Internal server error' })
                 } else {
+                    const update_data = {
+                        id: result._id,
+                        name: result.name
+                    }
+                    const user_update = await updateUserByPortfolio(user_id, update_data, UserModel)
                     const ports = await getPortfolio(user_id, PortfolioModel);
                     return res.json({ status: true, data: ports })
                 }

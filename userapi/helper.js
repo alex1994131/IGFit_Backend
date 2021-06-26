@@ -64,4 +64,12 @@ const getPortfolio = async (user_id, model) => {
     return result
 }
 
-module.exports = { create, signAccessToken, sessionUpdate, getExpiredtime, getIPAddress, getTimeZone, getPortfolio };
+const updateUserByPortfolio = async (user_id, update_data, model) => {
+    let user_data = await model.find({ _id: user_id })
+    let portfolio_data = user_data[0].portfolio;
+    portfolio_data.push(update_data)
+    let result = await model.updateOne({ _id: user_id }, { $set: { portfolio: portfolio_data } });
+    return result
+}
+
+module.exports = { create, signAccessToken, sessionUpdate, getExpiredtime, getIPAddress, getTimeZone, getPortfolio, updateUserByPortfolio };
