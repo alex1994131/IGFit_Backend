@@ -107,14 +107,57 @@ const PortfolioSchema = new Schema({
 })
 
 PortfolioSchema.pre('save', function (next) {
-	const user = this
-	user.value = 0
-	user.profit = 0
-	user.created_at = getTimeZone()
-	user.updated_at = getTimeZone()
+	const portfolio = this
+	portfolio.value = 0
+	portfolio.profit = 0
+	portfolio.created_at = getTimeZone()
+	portfolio.updated_at = getTimeZone()
 	next()
 })
 
 const PortfolioModel = model('portfolios', PortfolioSchema)
 
-module.exports = { UserModel, SessionModel, PortfolioModel };
+const TransactionSchema = new Schema({
+	portfolio: {
+		type: Schema.Types.ObjectId, ref: 'portfolios',
+		require: true
+	},
+	ticker: {
+		type: String,
+		require: true
+	},
+	date: {
+		type: Date,
+		require: true
+	},
+	direction: {
+		type: String,
+		require: true
+	},
+	price: {
+		type: String,
+		require: true
+	},
+	quantity: {
+		type: String,
+		require: true
+	},
+	commission: {
+		type: String,
+		require: true
+	},
+	currency: {
+		type: String,
+		require: true
+	}
+})
+
+TransactionSchema.pre('save', function (next) {
+	const transaction = this
+	transaction.date = getTimeZone()
+	next()
+})
+
+const TransactionModel = model('transactions', TransactionSchema)
+
+module.exports = { UserModel, SessionModel, PortfolioModel, TransactionModel };

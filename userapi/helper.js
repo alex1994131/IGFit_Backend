@@ -72,4 +72,14 @@ const updateUserByPortfolio = async (user_id, update_data, model) => {
     return result
 }
 
-module.exports = { create, signAccessToken, sessionUpdate, getExpiredtime, getIPAddress, getTimeZone, getPortfolio, updateUserByPortfolio };
+const getTransaction = async (portfolio, model) => {
+    let result = await model.find({ portfolio: portfolio })
+    return result
+}
+
+const deleteTransaction = async (transaction_id, model) => {
+    let result = await model.find({ _id: transaction }).delete()
+    return result
+}
+
+module.exports = { create, signAccessToken, sessionUpdate, getExpiredtime, getIPAddress, getTimeZone, getPortfolio, updateUserByPortfolio, getTransaction, deleteTransaction };

@@ -4,11 +4,8 @@ const config = require('./config');
 const cors = require('cors');
 const bodyParser = require('body-parser')
 
-// import { Types } from 'mongoose'
-// import { UserModel, SessionModel } from "./models"
-
-const { UserModel, SessionModel, PortfolioModel } = require('./model')
-const { create, signAccessToken, sessionUpdate, getPortfolio, updateUserByPortfolio } = require('./helper')
+const { UserModel, SessionModel, PortfolioModel, TransactionModel } = require('./model')
+const { create, signAccessToken, sessionUpdate, getPortfolio, updateUserByPortfolio, getTransaction, deleteTransaction } = require('./helper')
 
 module.exports = async (config) => {
     const routing = new Routing(config.app);
@@ -130,6 +127,53 @@ class Routing {
                     const user_update = await updateUserByPortfolio(user_id, update_data, UserModel)
                     const ports = await getPortfolio(user_id, PortfolioModel);
                     return res.json({ status: true, data: ports })
+                }
+            }
+            else {
+                return res.json({ status: false, flag: 1, message: "Sorry, we can't find user record." })
+            }
+        }
+        else if (req.path == '/get_transaction') {
+            const portfolio = req.body.portfolio;
+            const user_id = await sessionUpdate(req, SessionModel);
+
+            if (user_id) {
+                const result = await getTransaction(portfolio, TransactionModel);
+                return res.json({ status: true, data: result })
+            }
+            else {
+                return res.json({ status: false, message: "Sorry, we can't find user record." })
+            }
+        }
+        else if (req.path == '/add_transaction') {
+            const transaction = req.body;
+
+            const user_id = await sessionUpdate(req, SessionModel);
+            if (user_id) {
+                const flag = await create(transaction, TransactionModel)
+                if (!flag) {
+                    return res.json({ status: false, message: 'Internal server error' })
+                } else {
+                    const result = await getTransaction(transaction.portfolio, TransactionModel);
+                    return res.json({ status: true, data: result })
+                }
+            }
+            else {
+                return res.json({ status: false, flag: 1, message: "Sorry, we can't find user record." })
+            }
+        }
+
+        else if (req.path == '/add_transaction') {
+            const transaction_id = req.body.id;
+
+            const user_id = await sessionUpdate(req, SessionModel);
+            if (user_id) {
+                const flag = await deleteTransaction(transaction_id, TransactionModel);
+                if (!flag) {
+                    return res.json({ status: false, message: 'Internal server error' })
+                } else {
+                    const result = await getTransaction(transaction.portfolio, TransactionModel);
+                    return res.json({ status: true, data: result })
                 }
             }
             else {
