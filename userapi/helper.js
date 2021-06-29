@@ -78,8 +78,10 @@ const getTransaction = async (portfolio, model) => {
 }
 
 const deleteTransaction = async (transaction_id, model) => {
-    let result = await model.find({ _id: transaction }).delete()
-    return result
+    return model.deleteOne({ _id: transaction_id }, function (err) {
+        if (err) return handleError(err);
+        else return 'ok'
+    });
 }
 
 module.exports = { create, signAccessToken, sessionUpdate, getExpiredtime, getIPAddress, getTimeZone, getPortfolio, updateUserByPortfolio, getTransaction, deleteTransaction };

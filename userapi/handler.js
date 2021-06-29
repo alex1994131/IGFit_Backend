@@ -163,18 +163,15 @@ class Routing {
             }
         }
 
-        else if (req.path == '/add_transaction') {
+        else if (req.path == '/delete_transaction') {
             const transaction_id = req.body.id;
-
             const user_id = await sessionUpdate(req, SessionModel);
             if (user_id) {
-                const flag = await deleteTransaction(transaction_id, TransactionModel);
-                if (!flag) {
-                    return res.json({ status: false, message: 'Internal server error' })
-                } else {
-                    const result = await getTransaction(transaction.portfolio, TransactionModel);
-                    return res.json({ status: true, data: result })
-                }
+                const transaction = await TransactionModel.findOne({ _id: transaction_id })
+                const portfolio = transaction.portfolio;
+                TransactionModel.findByIdAndRemove(transaction_id).exec();
+                const result = await getTransaction(portfolio, TransactionModel);
+                return res.json({ status: true, data: result })
             }
             else {
                 return res.json({ status: false, flag: 1, message: "Sorry, we can't find user record." })
