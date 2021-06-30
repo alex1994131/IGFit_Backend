@@ -96,6 +96,10 @@ const PortfolioSchema = new Schema({
 		type: String,
 		require: true
 	},
+	transaction: {
+		type: Array,
+		default: []
+	},
 	created_at: {
 		type: Date,
 		require: true
@@ -118,8 +122,8 @@ PortfolioSchema.pre('save', function (next) {
 const PortfolioModel = model('portfolios', PortfolioSchema)
 
 const TransactionSchema = new Schema({
-	portfolio: {
-		type: Schema.Types.ObjectId, ref: 'portfolios',
+	name: {
+		type: String,
 		require: true
 	},
 	ticker: {

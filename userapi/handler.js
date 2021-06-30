@@ -3,6 +3,7 @@
 const config = require('./config');
 const cors = require('cors');
 const bodyParser = require('body-parser')
+const axios = require('axios')
 
 const { UserModel, SessionModel, PortfolioModel, TransactionModel } = require('./model')
 const { create, signAccessToken, sessionUpdate, getPortfolio, updateUserByPortfolio, getTransaction, deleteTransaction } = require('./helper')
@@ -175,6 +176,21 @@ class Routing {
             }
             else {
                 return res.json({ status: false, flag: 1, message: "Sorry, we can't find user record." })
+            }
+        }
+        else if (req.path == '/get_ticker') {
+            const search_string = req.body.search_string;
+            const user_id = await sessionUpdate(req, SessionModel);
+            if (user_id) {
+                return axios.get(`${config.eodhistorical_api}${search_string}?api_token=${config.eodhistorical_token}`, {
+                    "Content-type": "application/json",
+                })
+                    .then(result => {
+                        return res.json({ status: true, data: result.data })
+                    })
+                    .catch(error => {
+                        return res.json({ status: false, data: "Error" })
+                    });
             }
         }
         // else if (req.path == 'changePassword') {
