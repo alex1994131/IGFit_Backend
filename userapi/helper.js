@@ -73,15 +73,21 @@ const updateUserByPortfolio = async (user_id, update_data, model) => {
 }
 
 const getTransaction = async (portfolio, model) => {
-    let result = await model.find({ portfolio: portfolio })
+    let result = await model.find({ _id: portfolio })
+    if (result && result.length > 0) {
+        return result[0].transaction
+    }
+    else {
+        return []
+    }
+}
+
+const updatePortfolioByTransaction = async (portfolio_id, update_data, model) => {
+    let portfolio_data = await model.find({ _id: portfolio_id })
+    let transaction_data = portfolio_data[0].transaction;
+    transaction_data.push(update_data)
+    let result = await model.updateOne({ _id: portfolio_id }, { $set: { transaction: transaction_data } });
     return result
 }
 
-const deleteTransaction = async (transaction_id, model) => {
-    return model.deleteOne({ _id: transaction_id }, function (err) {
-        if (err) return handleError(err);
-        else return 'ok'
-    });
-}
-
-module.exports = { create, signAccessToken, sessionUpdate, getExpiredtime, getIPAddress, getTimeZone, getPortfolio, updateUserByPortfolio, getTransaction, deleteTransaction };
+module.exports = { create, signAccessToken, sessionUpdate, getExpiredtime, getIPAddress, getTimeZone, getPortfolio, updateUserByPortfolio, getTransaction, updatePortfolioByTransaction };

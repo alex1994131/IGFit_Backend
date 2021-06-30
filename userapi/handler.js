@@ -3,10 +3,11 @@
 const config = require('./config');
 const cors = require('cors');
 const bodyParser = require('body-parser')
+const moment = require('moment-timezone')
 const axios = require('axios')
 
 const { UserModel, SessionModel, PortfolioModel, TransactionModel } = require('./model')
-const { create, signAccessToken, sessionUpdate, getPortfolio, updateUserByPortfolio, getTransaction, deleteTransaction } = require('./helper')
+const { create, signAccessToken, sessionUpdate, getPortfolio, updateUserByPortfolio, getTransaction, updatePortfolioByTransaction } = require('./helper')
 
 module.exports = async (config) => {
     const routing = new Routing(config.app);
@@ -139,11 +140,11 @@ class Routing {
             const user_id = await sessionUpdate(req, SessionModel);
 
             if (user_id) {
-                const result = await getTransaction(portfolio, TransactionModel);
+                const result = await getTransaction(portfolio, PortfolioModel);
                 return res.json({ status: true, data: result })
             }
             else {
-                return res.json({ status: false, message: "Sorry, we can't find user record." })
+                return res.json({ status: false, data: "Sorry, we can't find user record." })
             }
         }
         else if (req.path == '/add_transaction') {
@@ -151,31 +152,76 @@ class Routing {
 
             const user_id = await sessionUpdate(req, SessionModel);
             if (user_id) {
-                const flag = await create(transaction, TransactionModel)
+                const tickerArray = transaction.ticker.split(':');
+                const name = tickerArray[0];
+                const ticker = tickerArray[1];
+                const currency = tickerArray[2];
+
+                let time = moment.tz(new Date(), "Europe/London")
+                time.utc("+530").format()
+
+                const new_transaction = {
+                    name: name,
+                    ticker: ticker,
+                    date: time,
+                    direction: transaction.direction,
+                    price: transaction.price,
+                    quantity: transaction.quantity,
+                    commission: transaction.commission,
+                    currency: currency
+                }
+
+                const flag = await create(new_transaction, TransactionModel)
                 if (!flag) {
-                    return res.json({ status: false, message: 'Internal server error' })
+                    return res.json({ status: false, data: 'Internal server error' })
                 } else {
-                    const result = await getTransaction(transaction.portfolio, TransactionModel);
+                    const user_update = await updatePortfolioByTransaction(transaction.portfolio, flag, PortfolioModel)
+                    const result = await getTransaction(transaction.portfolio, PortfolioModel);
                     return res.json({ status: true, data: result })
                 }
             }
             else {
-                return res.json({ status: false, flag: 1, message: "Sorry, we can't find user record." })
+                return res.json({ status: false, data: "Sorry, we can't find user record." })
             }
         }
-
         else if (req.path == '/delete_transaction') {
-            const transaction_id = req.body.id;
+            const transaction_id = req.body.transaction;
+            const portfolio_id = req.body.portfolio;
+
+            console.log(req.body)
+
             const user_id = await sessionUpdate(req, SessionModel);
             if (user_id) {
                 const transaction = await TransactionModel.findOne({ _id: transaction_id })
-                const portfolio = transaction.portfolio;
+                console.log('transcaction - ', transaction)
                 TransactionModel.findByIdAndRemove(transaction_id).exec();
-                const result = await getTransaction(portfolio, TransactionModel);
-                return res.json({ status: true, data: result })
+                let transactionByPort = await PortfolioModel.find({ _id: portfolio_id })
+
+                if (transactionByPort && transactionByPort.length > 0) {
+                    transactionByPort = transactionByPort[0].transaction
+                }
+                else {
+                    transactionByPort = []
+                }
+
+                transactionByPort.map((item, idx) => {
+                    if (item['_id'].toString() == transaction['_id'].toString()) {
+                        transactionByPort.splice(idx, 1);
+                        console.log(JSON.stringify(transactionByPort));
+                        return 0;
+                    }
+                })
+
+                const update_flag = await PortfolioModel.updateOne({ _id: portfolio_id }, { $set: { transaction: transactionByPort } });
+                if (update_flag) {
+                    return res.json({ status: true, data: transactionByPort })
+                }
+                else {
+                    return res.json({ status: false, data: 'Some error occur' })
+                }
             }
             else {
-                return res.json({ status: false, flag: 1, message: "Sorry, we can't find user record." })
+                return res.json({ status: false, data: "Sorry, we can't find user record." })
             }
         }
         else if (req.path == '/get_ticker') {
@@ -193,19 +239,5 @@ class Routing {
                     });
             }
         }
-        // else if (req.path == 'changePassword') {
-        //     // const { users_id, newPassword, currentPassword } = req.body
-        //     // const user = await Models.Users.findById(users_id)
-        //     // if (!user.validPassword(currentPassword, user.password)) {
-        //     //     return res.json({ status: false, message: 'passwords do not match' })
-        //     // }
-        //     // const password = user.generateHash(newPassword)
-        //     // const result = await Models.Users.findByIdAndUpdate(users_id, { password })
-        //     // if (result) {
-        //     //     return res.json({ status: true })
-        //     // } else {
-        //     //     return res.json({ status: false, error: "server error" })
-        //     // }
-        // }
     }
 }

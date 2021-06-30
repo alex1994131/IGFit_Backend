@@ -156,12 +156,6 @@ const TransactionSchema = new Schema({
 	}
 })
 
-TransactionSchema.pre('save', function (next) {
-	const transaction = this
-	transaction.date = getTimeZone()
-	next()
-})
-
 const TransactionModel = model('transactions', TransactionSchema)
 
 module.exports = { UserModel, SessionModel, PortfolioModel, TransactionModel };
