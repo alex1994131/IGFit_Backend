@@ -8,6 +8,6 @@ module.exports = {
     eodhistorical_api: 'https://eodhistoricaldata.com/api/search/',
     eodhistorical_token: '60db83f2b0ab55.00463877',
     connection: mongoose.connect(dbconf, { useNewUrlParser: true, useFindAndModify: false, useUnifiedTopology: true, useCreateIndex: true }).then(() => {
-        console.log('Database is connected');
+        console.log('Database are connected');
     })
 }

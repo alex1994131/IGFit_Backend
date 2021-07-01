@@ -157,13 +157,10 @@ class Routing {
                 const ticker = tickerArray[1];
                 const currency = tickerArray[2];
 
-                let time = moment.tz(new Date(), "Europe/London")
-                time.utc("+530").format()
-
                 const new_transaction = {
                     name: name,
                     ticker: ticker,
-                    date: time,
+                    date: transaction.date,
                     direction: transaction.direction,
                     price: transaction.price,
                     quantity: transaction.quantity,
@@ -188,12 +185,9 @@ class Routing {
             const transaction_id = req.body.transaction;
             const portfolio_id = req.body.portfolio;
 
-            console.log(req.body)
-
             const user_id = await sessionUpdate(req, SessionModel);
             if (user_id) {
                 const transaction = await TransactionModel.findOne({ _id: transaction_id })
-                console.log('transcaction - ', transaction)
                 TransactionModel.findByIdAndRemove(transaction_id).exec();
                 let transactionByPort = await PortfolioModel.find({ _id: portfolio_id })
 
@@ -228,7 +222,7 @@ class Routing {
             const search_string = req.body.search_string;
             const user_id = await sessionUpdate(req, SessionModel);
             if (user_id) {
-                return axios.get(`${config.eodhistorical_api}${search_string}?api_token=${config.eodhistorical_token}`, {
+                return axios.get(`${config.eodhistorical_api}${search_string}?api_token=${config.eodhistorical_token}&limit=15`, {
                     "Content-type": "application/json",
                 })
                     .then(result => {
