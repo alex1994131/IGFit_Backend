@@ -1,56 +1,21 @@
-const MongoClient = require('mongodb').MongoClient;
-const bcrypt = require('bcrypt-nodejs')
-const { getTimeZone } = require('./helper')
+const axios = require('axios')
+const cors = require('cors')
+const express = require('express');
+const config = require('./config')
+const { UserModel, PortfolioModel, TransactionModel } = require('./model')
+const { create, updateUserByPortfolio, updatePortfolioByTransaction } = require('./helper')
 
-var salt = bcrypt.genSaltSync(9);
+const app = express();
 
-const settings = {
-	mongoConfig: {
-		serverUrl: 'mongodb://localhost:3333/',
-		database: 'igfit'
-	}
+app.use(cors());
+
+let userData = {
+	"username": "Test",
+	"email": "test@gmail.com",
+	"password": "test"
 };
 
-const mongoConfig = settings.mongoConfig;
-
-let _connection = undefined;
-let _db = undefined;
-
-const dbConnection = async () => {
-	if (!_connection) {
-		_connection = await MongoClient.connect(mongoConfig.serverUrl, {
-			useNewUrlParser: true,
-			useUnifiedTopology: true
-		});
-		_db = await _connection.db(mongoConfig.database);
-	}
-
-	return _db;
-};
-
-const getCollectionFn = (collection) => {
-	let _col = undefined;
-
-	return async () => {
-		if (!_col) {
-			const db = await dbConnection();
-			_col = await db.collection(collection);
-		}
-
-		return _col;
-	};
-};
-
-const userData = {
-	"username": "TestUser",
-	"email_id": "testuser@gmail.com",
-	"password": "test",
-	"portfolio": [{
-
-	}]
-};
-
-const portfolioData = {
+let portfolioData = {
 	"name": "Test",
 	"user_id": "",
 	"value": 0,
@@ -1681,12 +1646,78 @@ const transactionData = [
 ];
 
 async function main() {
-	const db = await dbConnection();
-	// await db.dropDatabase();
+	const connection = config.connection;
 
+	const user_result = await create(userData, UserModel)
+	if (user_result) {
+		portfolioData.user_id = user_result._id
+		const portfolio_result = await create(portfolioData, PortfolioModel)
 
-	console.log('Done seeding database');
-	await db.serverConfig.close();
+		const update_user_data = {
+			id: portfolio_result._id,
+			name: portfolio_result.name
+		}
+		const user_update = await updateUserByPortfolio(user_result._id, update_user_data, UserModel)
+
+		if (portfolio_result) {
+
+			transactionData.map(async (item, index) => {
+
+				let insert_data = {
+					name: item[3],
+					ticker: '',
+					date: new Date(item[0]),
+					direction: item[4],
+					price: item[6],
+					quantity: item[5],
+					commission: item[10],
+					currency: item[7]
+				};
+
+				axios.get(`${config.eodhistorical_api}${item[3]}?api_token=${config.eodhistorical_token}&limit=15`, {
+					"Content-type": "application/json",
+				})
+					.then(async (result) => {
+						let ticker = ''
+						const datum = result.data;
+						let final_result = [];
+
+						if (datum.length === 0) {
+							ticker = 'UNKNOWN'
+						}
+						else {
+							datum.map((item, index) => {
+								if (item.ISIN != null) {
+									final_result.push(item)
+								}
+								return;
+							})
+
+							if (final_result.length === 0) {
+								final_result.push(datum[0])
+							}
+							else {
+								final_result = final_result[0]
+							}
+
+							ticker = final_result.Code
+						}
+
+						insert_data.ticker = ticker;
+						const transaction_result = await create(insert_data, TransactionModel)
+						const user_update = await updatePortfolioByTransaction(portfolio_result._id, transaction_result, PortfolioModel)
+					})
+					.catch(async (error) => {
+						insert_data.ticker = 'UNKNOWN';
+						const transaction_result = await create(insert_data, TransactionModel)
+						const user_update = await updatePortfolioByTransaction(portfolio_result._id, transaction_result, PortfolioModel)
+					});
+
+				return;
+			});
+
+		}
+	}
 }
 
 main();

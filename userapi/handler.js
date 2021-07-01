@@ -226,7 +226,21 @@ class Routing {
                     "Content-type": "application/json",
                 })
                     .then(result => {
-                        return res.json({ status: true, data: result.data })
+                        const datum = result.data;
+                        const final_result = [];
+
+                        datum.map((item, index) => {
+                            if (item.ISIN != null) {
+                                final_result.push(item)
+                            }
+                            return;
+                        })
+
+                        if (final_result.length === 0) {
+                            final_result.push(datum[0])
+                        }
+
+                        return res.json({ status: true, data: final_result })
                     })
                     .catch(error => {
                         return res.json({ status: false, data: "Error" })
