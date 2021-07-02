@@ -83,9 +83,12 @@ const getTransaction = async (portfolio, model) => {
 }
 
 const updatePortfolioByTransaction = async (portfolio_id, update_data, model) => {
-    let portfolio_data = await model.find({ _id: portfolio_id })
-    let transaction_data = portfolio_data[0].transaction;
+    let portfolio_data = await model.findOne({ _id: portfolio_id })
+    let transaction_data = portfolio_data.transaction;
     transaction_data.push(update_data)
+    console.log('---------------');
+    console.log(transaction_data.length);
+    console.log('**');
     let result = await model.updateOne({ _id: portfolio_id }, { $set: { transaction: transaction_data } });
     return result
 }

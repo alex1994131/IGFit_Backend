@@ -1,3 +1,4 @@
+const mongoose = require('mongoose')
 const axios = require('axios')
 const cors = require('cors')
 const express = require('express');
@@ -1645,8 +1646,17 @@ const transactionData = [
 	]
 ];
 
+const ccc = config.connection;
+const connection = mongoose.connection;
+connection.once('open', () => {
+	console.log('Database connected..');
+	main();
+}).catch(err => {
+	console.log('Connection failed..');
+})
+
 async function main() {
-	const connection = config.connection;
+	await connection.dropDatabase()
 
 	const user_result = await create(userData, UserModel)
 	if (user_result) {
@@ -1661,7 +1671,10 @@ async function main() {
 
 		if (portfolio_result) {
 
-			transactionData.map(async (item, index) => {
+			let count = 0;
+			let allDatum = [];
+			for (var i = 0; i < transactionData.length; i++) {
+				let item = transactionData[i]
 
 				let insert_data = {
 					name: item[3],
@@ -1674,50 +1687,54 @@ async function main() {
 					currency: item[7]
 				};
 
-				axios.get(`${config.eodhistorical_api}${item[3]}?api_token=${config.eodhistorical_token}&limit=15`, {
-					"Content-type": "application/json",
-				})
-					.then(async (result) => {
-						let ticker = ''
-						const datum = result.data;
-						let final_result = [];
+				let ticker = ''
 
-						if (datum.length === 0) {
-							ticker = 'UNKNOWN'
-						}
-						else {
-							datum.map((item, index) => {
-								if (item.ISIN != null) {
-									final_result.push(item)
-								}
-								return;
-							})
-
-							if (final_result.length === 0) {
-								final_result.push(datum[0])
-							}
-							else {
-								final_result = final_result[0]
-							}
-
-							ticker = final_result.Code
-						}
-
-						insert_data.ticker = ticker;
-						const transaction_result = await create(insert_data, TransactionModel)
-						const user_update = await updatePortfolioByTransaction(portfolio_result._id, transaction_result, PortfolioModel)
-					})
-					.catch(async (error) => {
-						insert_data.ticker = 'UNKNOWN';
-						const transaction_result = await create(insert_data, TransactionModel)
-						const user_update = await updatePortfolioByTransaction(portfolio_result._id, transaction_result, PortfolioModel)
+				try {
+					const api_result = await axios.get(`${config.eodhistorical_api}${item[3]}?api_token=${config.eodhistorical_token}&limit=15`, {
+						"Content-type": "application/json",
 					});
 
-				return;
-			});
+					const datum = api_result.data;
+					let final_result = [];
+					let temp = {}
 
+					if (datum.length === 0) {
+						ticker = 'UNKNOWN'
+					}
+					else {
+						for (var j = 0; j < datum.length; j++) {
+							if (datum[j].ISIN != null) {
+								final_result.push(datum[j])
+								break;
+							}
+						}
+
+						if (final_result.length === 0) {
+							temp = datum[0]
+						}
+						else {
+							temp = final_result[0]
+						}
+
+						ticker = temp.Code
+					}
+				} catch (e) {
+					ticker = 'UNKNOWN'
+				}
+
+				insert_data.ticker = ticker;
+				console.log(insert_data);
+				console.log('-------------------------', i)
+				allDatum.push(insert_data)
+			}
+
+			for (var i = 0; i < allDatum.length; i++) {
+				let insert_data = allDatum[i];
+				const transaction_result = await create(insert_data, TransactionModel)
+				const user_update = await updatePortfolioByTransaction(portfolio_result._id, transaction_result, PortfolioModel)
+			}
 		}
 	}
 }
 
-main();
+// main();
