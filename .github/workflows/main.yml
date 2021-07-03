@@ -40,4 +40,5 @@ jobs:
           curl -sSL https://cli.openfaas.com | sudo sh
           export OPENFAAS_URL=https://admin:secure_password@faasd.tyap.cloud
           export OPENFAAS_PREFIX=registry.tyap.cloud
+          faas login -u admin -p secure_password
           faas up -f userapi.yml
