@@ -121,41 +121,77 @@ PortfolioSchema.pre('save', function (next) {
 
 const PortfolioModel = model('portfolios', PortfolioSchema)
 
-const TransactionSchema = new Schema({
-	name: {
-		type: String,
-		require: true
-	},
-	ticker: {
-		type: String,
-		require: true
-	},
+// const TransactionSchema = new Schema({
+// 	name: {
+// 		type: String,
+// 		require: true
+// 	},
+// 	ticker: {
+// 		type: String,
+// 		require: true
+// 	},
+// 	date: {
+// 		type: Date,
+// 		require: true
+// 	},
+// 	direction: {
+// 		type: String,
+// 		require: true
+// 	},
+// 	price: {
+// 		type: String,
+// 		require: true
+// 	},
+// 	quantity: {
+// 		type: String,
+// 		require: true
+// 	},
+// 	commission: {
+// 		type: String,
+// 		require: true
+// 	},
+// 	currency: {
+// 		type: String,
+// 		require: true
+// 	}
+// })
+
+// const TransactionModel = model('transactions', TransactionSchema)
+
+const priceSchema = new Schema({
 	date: {
 		type: Date,
 		require: true
 	},
-	direction: {
-		type: String,
+	open: {
+		type: Number,
 		require: true
 	},
-	price: {
-		type: String,
+	high: {
+		type: Number,
 		require: true
 	},
-	quantity: {
-		type: String,
+	low: {
+		type: Number,
 		require: true
 	},
-	commission: {
-		type: String,
+	close: {
+		type: Number,
 		require: true
 	},
-	currency: {
-		type: String,
+	adjusted_close: {
+		type: Number,
+		require: true
+	},
+	volume: {
+		type: Number,
 		require: true
 	}
 })
 
-const TransactionModel = model('transactions', TransactionSchema)
+priceSchema.pre('save', function (next) {
+	const price = this
+	next();
+})
 
-module.exports = { UserModel, SessionModel, PortfolioModel, TransactionModel };
+module.exports = { UserModel, SessionModel, PortfolioModel, priceSchema /*, TransactionModel */ };

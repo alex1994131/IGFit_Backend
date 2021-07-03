@@ -5,9 +5,20 @@ const cors = require('cors');
 const bodyParser = require('body-parser')
 const moment = require('moment-timezone')
 const axios = require('axios')
+const mongoose = require('mongoose')
 
-const { UserModel, SessionModel, PortfolioModel, TransactionModel } = require('./model')
-const { create, signAccessToken, sessionUpdate, getPortfolio, updateUserByPortfolio, getTransaction, updatePortfolioByTransaction } = require('./helper')
+const { UserModel, SessionModel, PortfolioModel, priceSchema /*, TransactionModel */ } = require('./model')
+
+const {
+    create,
+    signAccessToken,
+    sessionUpdate,
+    getPortfolio,
+    updateUserByPortfolio,
+    getTransaction,
+    updatePortfolioByTransaction,
+    updatePrice,
+} = require('./helper')
 
 module.exports = async (config) => {
     const routing = new Routing(config.app);
@@ -158,6 +169,7 @@ class Routing {
                 const currency = tickerArray[2];
 
                 const new_transaction = {
+                    _id: new mongoose.Types.ObjectId(),
                     name: name,
                     ticker: ticker,
                     date: transaction.date,
@@ -165,17 +177,28 @@ class Routing {
                     price: transaction.price,
                     quantity: transaction.quantity,
                     commission: transaction.commission,
-                    currency: currency
+                    currency: currency,
+                    total: (Number(transaction.price) * Number(transaction.quantity) + Number(transaction.commission))
                 }
 
-                const flag = await create(new_transaction, TransactionModel)
-                if (!flag) {
-                    return res.json({ status: false, data: 'Internal server error' })
-                } else {
-                    const user_update = await updatePortfolioByTransaction(transaction.portfolio, flag, PortfolioModel)
+                // const flag = await create(new_transaction, TransactionModel)
+                // if (!flag) {
+                //     return res.json({ status: false, data: 'Internal server error' })
+                // } else {
+                //     const user_update = await updatePortfolioByTransaction(transaction.portfolio, flag, PortfolioModel)
+                //     const result = await getTransaction(transaction.portfolio, PortfolioModel);
+                //     return res.json({ status: true, data: result })
+                // }
+
+                const user_update = await updatePortfolioByTransaction(transaction.portfolio, new_transaction, PortfolioModel)
+                if (user_update) {
                     const result = await getTransaction(transaction.portfolio, PortfolioModel);
                     return res.json({ status: true, data: result })
                 }
+                else {
+                    return res.json({ status: false, data: 'Add failure' })
+                }
+
             }
             else {
                 return res.json({ status: false, data: "Sorry, we can't find user record." })
@@ -187,8 +210,8 @@ class Routing {
 
             const user_id = await sessionUpdate(req, SessionModel);
             if (user_id) {
-                const transaction = await TransactionModel.findOne({ _id: transaction_id })
-                TransactionModel.findByIdAndRemove(transaction_id).exec();
+                // const transaction = await TransactionModel.findOne({ _id: transaction_id })
+                // TransactionModel.findByIdAndRemove(transaction_id).exec();
                 let transactionByPort = await PortfolioModel.find({ _id: portfolio_id })
 
                 if (transactionByPort && transactionByPort.length > 0) {
@@ -199,7 +222,7 @@ class Routing {
                 }
 
                 transactionByPort.map((item, idx) => {
-                    if (item['_id'].toString() == transaction['_id'].toString()) {
+                    if (item['_id'].toString() == transaction_id) {
                         transactionByPort.splice(idx, 1);
                         console.log(JSON.stringify(transactionByPort));
                         return 0;
@@ -222,7 +245,7 @@ class Routing {
             const search_string = req.body.search_string;
             const user_id = await sessionUpdate(req, SessionModel);
             if (user_id) {
-                return axios.get(`${config.eodhistorical_api}${search_string}?api_token=${config.eodhistorical_token}&limit=15`, {
+                axios.get(`${config.eodhistorical_ticker_api}${search_string}?api_token=${config.eodhistorical_token}&limit=15`, {
                     "Content-type": "application/json",
                 })
                     .then(result => {
@@ -246,6 +269,142 @@ class Routing {
                         return res.json({ status: false, data: "Error" })
                     });
             }
+        }
+        else if (req.path == '/get_price') {
+            const ticker = req.query.ticker;
+            const exchange = req.query.exchange;
+            const from = req.query.from
+            const to = req.query.to
+
+            // const result = await create(insert_data, PriceModel)
+
+            // const user_id = await sessionUpdate(req, SessionModel);
+
+            const collection_name = `${ticker}_${exchange}`
+
+            //if (user_id) {
+            const PriceModel = mongoose.model(collection_name, priceSchema)
+
+
+            let recent_data = await PriceModel.find({ date: { $gte: new Date(from), $lte: new Date(to) } })/*.select({ date: 1 }).exec();*/
+            const DAY_TIME = 24 * 60 * 60 * 1000
+
+            if (recent_data.length === 0) {
+                const api_result = await axios.get(`${config.eodhistorical_price_api}${ticker}.${exchange}?from=${from}&to=${to}&period=d&fmt=json&api_token=${config.eodhistorical_token}`, {
+                    "Content-type": "application/json",
+                })
+
+                const datum = api_result.data
+                let return_data = [], cur, idx, cnt, to_date = new Date(to);
+                for (cur = new Date(from), idx = 0, cnt = 0; cur.getTime() <= to_date.getTime(); cur.setDate(cur.getDate() + 1)) {
+                    if (idx >= datum.length) {
+                        await create(
+                            {
+                                "date": cur,
+                                "open": 0,
+                                "high": 0,
+                                "low": 0,
+                                "close": 0,
+                                "adjusted_close": 0,
+                                "volume": 0
+                            }
+                            , PriceModel)
+                        idx++
+                    } else {
+                        const tmp_date = new Date(datum[idx].date)
+                        if (tmp_date.getTime() / DAY_TIME == cur.getTime() / DAY_TIME) {
+                            const result = await create(datum[idx], PriceModel)
+                            return_data.push(result);
+                            idx++
+                        }
+                        else {
+                            if (idx != 0) {
+                                const result = await create({ ...datum[idx - 1], date: cur }, PriceModel)
+                                return_data.push(result);
+                            }
+                            else {
+                                await create(
+                                    {
+                                        "date": cur,
+                                        "open": 0,
+                                        "high": 0,
+                                        "low": 0,
+                                        "close": 0,
+                                        "adjusted_close": 0,
+                                        "volume": 0
+                                    }
+                                    , PriceModel)
+                            }
+                        }
+                    }
+                }
+
+                return res.json({ status: 1, data: return_data })
+            }
+            else {
+                const from_d = new Date(from);
+                const to_d = new Date(to);
+                const days = (to_d.getTime() - from_d.getTime()) / DAY_TIME + 1;
+
+                if (recent_data.length == days) {
+                    return res.json({ status: 1, data: recent_data })
+                }
+                else {
+                    const api_result = await axios.get(`${config.eodhistorical_price_api}${ticker}.${exchange}?from=${from}&to=${to}&period=d&fmt=json&api_token=${config.eodhistorical_token}`, {
+                        "Content-type": "application/json",
+                    })
+
+                    const datum = api_result.data
+                    let return_data = [], cur, idx, cnt, to_date = new Date(to);
+                    for (cur = new Date(from), idx = 0, cnt = 0; cur.getTime() <= to_date.getTime(); cur.setDate(cur.getDate() + 1)) {
+                        if (idx >= datum.length) {
+                            await updatePrice(
+                                {
+                                    "date": cur,
+                                    "open": 0,
+                                    "high": 0,
+                                    "low": 0,
+                                    "close": 0,
+                                    "adjusted_close": 0,
+                                    "volume": 0
+                                }
+                                , PriceModel)
+                            idx++
+                        } else {
+                            const tmp_date = new Date(datum[idx].date)
+                            if (tmp_date.getTime() / DAY_TIME == cur.getTime() / DAY_TIME) {
+                                const result = await updatePrice(datum[idx], PriceModel)
+                                return_data.push(result);
+                                idx++
+                            }
+                            else {
+                                if (idx != 0) {
+                                    const result = await updatePrice({ ...datum[idx - 1], date: cur }, PriceModel)
+                                    return_data.push(result);
+                                    // cnt++
+                                }
+                                else {
+                                    await updatePrice(
+                                        {
+                                            "date": cur,
+                                            "open": 0,
+                                            "high": 0,
+                                            "low": 0,
+                                            "close": 0,
+                                            "adjusted_close": 0,
+                                            "volume": 0
+                                        }
+                                        , PriceModel)
+                                }
+                            }
+                        }
+                    }
+
+                    console.log(`${recent_data.length} : ${days}`);
+                    return res.json({ status: 1, data: return_data })
+                }
+            }
+            //}
         }
     }
 }

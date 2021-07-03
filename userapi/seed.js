@@ -1676,15 +1676,23 @@ async function main() {
 			for (var i = 0; i < transactionData.length; i++) {
 				let item = transactionData[i]
 
+				let name = item[3]
+
+				var regexp = /\s(ltd|limited|inc|b\.v\.|NV.*|plc|AG.*|SE)/i;
+				name = name.replace(regexp, "");
+				name = name.replace(/\-|\/.*/g, "");
+
 				let insert_data = {
-					name: item[3],
+					_id: new mongoose.Types.ObjectId(),
+					name: name,
 					ticker: '',
-					date: new Date(item[0]),
+					date: new Date(`${item[0]} ${item[1]}`),
 					direction: item[4],
 					price: item[6],
 					quantity: item[5],
 					commission: item[10],
-					currency: item[7]
+					currency: item[7],
+					total: (Number(item[6]) * Number(item[5]) + Number(item[10]))
 				};
 
 				let ticker = ''
@@ -1723,15 +1731,14 @@ async function main() {
 				}
 
 				insert_data.ticker = ticker;
+				console.log('---------------', i)
 				console.log(insert_data);
-				console.log('-------------------------', i)
 				allDatum.push(insert_data)
 			}
 
 			for (var i = 0; i < allDatum.length; i++) {
 				let insert_data = allDatum[i];
-				const transaction_result = await create(insert_data, TransactionModel)
-				const user_update = await updatePortfolioByTransaction(portfolio_result._id, transaction_result, PortfolioModel)
+				const user_update = await updatePortfolioByTransaction(portfolio_result._id, insert_data, PortfolioModel)
 			}
 		}
 	}

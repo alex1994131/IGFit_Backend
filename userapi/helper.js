@@ -15,6 +15,18 @@ const create = async (data, model) => {
     })
 }
 
+// const create = async (data, model) => {
+//     const savehandle = new model(data)
+//     // console.log(savehandle)
+//     const result = await savehandle.save()
+//     // console.log(result);
+//     if (!result) {
+//         return false
+//     } else {
+//         return result
+//     }
+// }
+
 const signAccessToken = async (req, user_id, model) => {
     const expiredtime = getExpiredtime()
     const token = md5(user_id + expiredtime)
@@ -86,11 +98,38 @@ const updatePortfolioByTransaction = async (portfolio_id, update_data, model) =>
     let portfolio_data = await model.findOne({ _id: portfolio_id })
     let transaction_data = portfolio_data.transaction;
     transaction_data.push(update_data)
-    console.log('---------------');
-    console.log(transaction_data.length);
-    console.log('**');
     let result = await model.updateOne({ _id: portfolio_id }, { $set: { transaction: transaction_data } });
     return result
 }
 
-module.exports = { create, signAccessToken, sessionUpdate, getExpiredtime, getIPAddress, getTimeZone, getPortfolio, updateUserByPortfolio, getTransaction, updatePortfolioByTransaction };
+const updatePrice = async (data, model) => {
+    if (data.volume == 0) {
+        if (await model.exists({ date: data.date })) return true;
+    }
+
+    let query = { date: data.date },
+        options = { upsert: true, new: true, setDefaultsOnInsert: true };
+
+    // Find the document
+    const result = await model.findOneAndUpdate(query, data, options);
+
+    if (!result) {
+        return false
+    } else {
+        return result
+    }
+}
+
+module.exports = {
+    create,
+    signAccessToken,
+    sessionUpdate,
+    getExpiredtime,
+    getIPAddress,
+    getTimeZone,
+    getPortfolio,
+    updateUserByPortfolio,
+    getTransaction,
+    updatePortfolioByTransaction,
+    updatePrice
+};
