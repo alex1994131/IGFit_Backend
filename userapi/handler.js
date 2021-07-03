@@ -5,8 +5,9 @@ const cors = require('cors');
 const bodyParser = require('body-parser')
 const moment = require('moment-timezone')
 const axios = require('axios')
+const mongoose = require('mongoose')
 
-const { UserModel, SessionModel, PortfolioModel, TransactionModel } = require('./model')
+const { UserModel, SessionModel, PortfolioModel /*, TransactionModel */ } = require('./model')
 const { create, signAccessToken, sessionUpdate, getPortfolio, updateUserByPortfolio, getTransaction, updatePortfolioByTransaction } = require('./helper')
 
 module.exports = async (config) => {
@@ -158,6 +159,7 @@ class Routing {
                 const currency = tickerArray[2];
 
                 const new_transaction = {
+                    _id: new mongoose.Types.ObjectId(),
                     name: name,
                     ticker: ticker,
                     date: transaction.date,
@@ -165,17 +167,28 @@ class Routing {
                     price: transaction.price,
                     quantity: transaction.quantity,
                     commission: transaction.commission,
-                    currency: currency
+                    currency: currency,
+                    total: (Number(transaction.price) * Number(transaction.quantity) + Number(transaction.commission))
                 }
 
-                const flag = await create(new_transaction, TransactionModel)
-                if (!flag) {
-                    return res.json({ status: false, data: 'Internal server error' })
-                } else {
-                    const user_update = await updatePortfolioByTransaction(transaction.portfolio, flag, PortfolioModel)
+                // const flag = await create(new_transaction, TransactionModel)
+                // if (!flag) {
+                //     return res.json({ status: false, data: 'Internal server error' })
+                // } else {
+                //     const user_update = await updatePortfolioByTransaction(transaction.portfolio, flag, PortfolioModel)
+                //     const result = await getTransaction(transaction.portfolio, PortfolioModel);
+                //     return res.json({ status: true, data: result })
+                // }
+
+                const user_update = await updatePortfolioByTransaction(transaction.portfolio, new_transaction, PortfolioModel)
+                if (user_update) {
                     const result = await getTransaction(transaction.portfolio, PortfolioModel);
                     return res.json({ status: true, data: result })
                 }
+                else {
+                    return res.json({ status: false, data: 'Add failure' })
+                }
+
             }
             else {
                 return res.json({ status: false, data: "Sorry, we can't find user record." })
@@ -187,8 +200,8 @@ class Routing {
 
             const user_id = await sessionUpdate(req, SessionModel);
             if (user_id) {
-                const transaction = await TransactionModel.findOne({ _id: transaction_id })
-                TransactionModel.findByIdAndRemove(transaction_id).exec();
+                // const transaction = await TransactionModel.findOne({ _id: transaction_id })
+                // TransactionModel.findByIdAndRemove(transaction_id).exec();
                 let transactionByPort = await PortfolioModel.find({ _id: portfolio_id })
 
                 if (transactionByPort && transactionByPort.length > 0) {
@@ -199,7 +212,7 @@ class Routing {
                 }
 
                 transactionByPort.map((item, idx) => {
-                    if (item['_id'].toString() == transaction['_id'].toString()) {
+                    if (item['_id'].toString() == transaction_id) {
                         transactionByPort.splice(idx, 1);
                         console.log(JSON.stringify(transactionByPort));
                         return 0;
