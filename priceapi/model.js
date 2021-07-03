@@ -26,7 +26,7 @@ const priceSchema = new Schema({
 		type: Number,
 		require: true
 	},
-	volumn: {
+	volume: {
 		type: Number,
 		require: true
 	}

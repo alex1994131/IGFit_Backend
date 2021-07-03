@@ -1,10 +1,26 @@
-const { Types } = require('mongoose');
-
 const create = async (data, model) => {
     const savehandle = new model(data)
-    console.log(savehandle)
+    // console.log(savehandle)
     const result = await savehandle.save()
-    console.log(result);
+    // console.log(result);
+    if (!result) {
+        return false
+    } else {
+        return result
+    }
+}
+
+const update = async (data, model) => {
+    if (data.volume == 0) {
+        if (await model.exists({ date: data.date })) return true;
+    }
+
+    let query = { date: data.date },
+        options = { upsert: true, new: true, setDefaultsOnInsert: true };
+
+    // Find the document
+    const result = await model.findOneAndUpdate(query, data, options);
+
     if (!result) {
         return false
     } else {
@@ -28,26 +44,9 @@ const sessionUpdate = async (req) => {
     // }
 }
 
-const prepareDB = async (dbname) => {
-    const url = `mongodb://localhost:3333/${dbname}`
-
-    return new Promise((resolve, reject) => {
-        MongoClient.connect(url, {}, (err, database) => {
-            if (err) {
-                console.log('error')
-                return reject(err)
-            }
-
-            clientsDB = database.db(dbname);
-            console.log('ok')
-            return resolve(clientsDB)
-        });
-    });
-}
-
 const getExpiredtime = () => {
     const expiredtime = new Date(new Date().valueOf() + parseInt(config.USER_SESSION_TIME))
     return expiredtime
 }
 
-module.exports = { create, sessionUpdate, prepareDB, getExpiredtime };
+module.exports = { create, update, sessionUpdate, getExpiredtime };
