@@ -158,4 +158,40 @@ const PortfolioModel = model('portfolios', PortfolioSchema)
 
 // const TransactionModel = model('transactions', TransactionSchema)
 
-module.exports = { UserModel, SessionModel, PortfolioModel /*, TransactionModel */ };
+const priceSchema = new Schema({
+	date: {
+		type: Date,
+		require: true
+	},
+	open: {
+		type: Number,
+		require: true
+	},
+	high: {
+		type: Number,
+		require: true
+	},
+	low: {
+		type: Number,
+		require: true
+	},
+	close: {
+		type: Number,
+		require: true
+	},
+	adjusted_close: {
+		type: Number,
+		require: true
+	},
+	volume: {
+		type: Number,
+		require: true
+	}
+})
+
+priceSchema.pre('save', function (next) {
+	const price = this
+	next();
+})
+
+module.exports = { UserModel, SessionModel, PortfolioModel, priceSchema /*, TransactionModel */ };
