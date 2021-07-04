@@ -15,18 +15,6 @@ const create = async (data, model) => {
     })
 }
 
-// const create = async (data, model) => {
-//     const savehandle = new model(data)
-//     // console.log(savehandle)
-//     const result = await savehandle.save()
-//     // console.log(result);
-//     if (!result) {
-//         return false
-//     } else {
-//         return result
-//     }
-// }
-
 const signAccessToken = async (req, user_id, model) => {
     const expiredtime = getExpiredtime()
     const token = md5(user_id + expiredtime)
