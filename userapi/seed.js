@@ -1691,16 +1691,16 @@ async function main() {
 					direction: item[4],
 					price: item[6],
 					quantity: item[5],
-					commission: item[10],
+					commission: item[9],
 					currency: item[7],
-					total: (Number(item[6]) * Number(item[5]) + Number(item[10]))
+					total: (Number(item[6]) * Number(item[5]) + Number(item[9]))
 				};
 
 				let ticker = ''
 				let exchange = ''
 
 				try {
-					const api_result = await axios.get(`${config.eodhistorical_api}${name}?api_token=${config.eodhistorical_token}&limit=15`, {
+					const api_result = await axios.get(`${config.eodhistorical_ticker_api}${name}?api_token=${config.eodhistorical_token}&limit=15`, {
 						"Content-type": "application/json",
 					});
 
