@@ -1691,9 +1691,9 @@ async function main() {
 					direction: item[4],
 					price: item[6],
 					quantity: item[5],
-					commission: item[10],
+					commission: item[9],
 					currency: item[7],
-					total: (Number(item[6]) * Number(item[5]) + Number(item[10]))
+					total: (Number(item[6]) * Number(item[5]) + Number(item[9]))
 				};
 
 				let ticker = ''
