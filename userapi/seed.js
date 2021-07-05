@@ -1686,6 +1686,7 @@ async function main() {
 					_id: new mongoose.Types.ObjectId(),
 					name: name,
 					ticker: '',
+					exchange: '',
 					date: new Date(`${item[0]} ${item[1]}`),
 					direction: item[4],
 					price: item[6],
@@ -1696,9 +1697,10 @@ async function main() {
 				};
 
 				let ticker = ''
+				let exchange = ''
 
 				try {
-					const api_result = await axios.get(`${config.eodhistorical_api}${item[3]}?api_token=${config.eodhistorical_token}&limit=15`, {
+					const api_result = await axios.get(`${config.eodhistorical_api}${name}?api_token=${config.eodhistorical_token}&limit=15`, {
 						"Content-type": "application/json",
 					});
 
@@ -1708,6 +1710,7 @@ async function main() {
 
 					if (datum.length === 0) {
 						ticker = 'UNKNOWN'
+						exchange = 'UNKNOWN'
 					}
 					else {
 						for (var j = 0; j < datum.length; j++) {
@@ -1725,12 +1728,15 @@ async function main() {
 						}
 
 						ticker = temp.Code
+						exchange = temp.Exchange
 					}
 				} catch (e) {
 					ticker = 'UNKNOWN'
+					exchange = 'UNKNOWN'
 				}
 
 				insert_data.ticker = ticker;
+				insert_data.exchange = exchange;
 				console.log('---------------', i)
 				console.log(insert_data);
 				allDatum.push(insert_data)
