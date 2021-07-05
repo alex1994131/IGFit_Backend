@@ -1700,7 +1700,7 @@ async function main() {
 				let exchange = ''
 
 				try {
-					const api_result = await axios.get(`${config.eodhistorical_api}${name}?api_token=${config.eodhistorical_token}&limit=15`, {
+					const api_result = await axios.get(`${config.eodhistorical_ticker_api}${name}?api_token=${config.eodhistorical_token}&limit=15`, {
 						"Content-type": "application/json",
 					});
 
