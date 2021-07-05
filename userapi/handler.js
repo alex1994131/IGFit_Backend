@@ -165,13 +165,15 @@ class Routing {
             if (user_id) {
                 const tickerArray = transaction.ticker.split(':');
                 const name = tickerArray[0];
-                const ticker = tickerArray[1];
-                const currency = tickerArray[2];
+                const exchange = tickerArray[1]
+                const ticker = tickerArray[2];
+                const currency = tickerArray[3];
 
                 const new_transaction = {
                     _id: new mongoose.Types.ObjectId(),
                     name: name,
                     ticker: ticker,
+                    exchange: exchange,
                     date: transaction.date,
                     direction: transaction.direction,
                     price: transaction.price,
