@@ -278,6 +278,11 @@ class Routing {
             const from = req.body.from
             const to = req.body.to
 
+            // const ticker = req.query.ticker;
+            // const exchange = req.query.exchange;
+            // const from = req.query.from
+            // const to = req.query.to
+
             console.log(req.body)
 
             if (ticker !== undefined && exchange !== undefined && ticker !== 'UNKNOWN' && exchange !== 'UNKNOWN') {
@@ -298,6 +303,9 @@ class Routing {
                     const api_result = await axios.get(`${config.eodhistorical_price_api}${ticker}.${exchange}?from=${from}&to=${to}&period=d&fmt=json&api_token=${config.eodhistorical_token}`, {
                         "Content-type": "application/json",
                     })
+
+                    console.log('-----------------', 1)
+                    console.log(api_result)
 
                     const datum = api_result.data
                     let return_data = [], cur, idx, cnt, to_date = new Date(to);
@@ -336,6 +344,10 @@ class Routing {
                             "Content-type": "application/json",
                         })
 
+                        console.log('-----------------', 2)
+                        console.log(api_result)
+
+
                         const datum = api_result.data
 
                         if (datum.length == 0) {
@@ -371,6 +383,10 @@ class Routing {
                         const api_result = await axios.get(`${config.eodhistorical_price_api}${ticker}.${exchange}?from=${from}&to=${to}&period=d&fmt=json&api_token=${config.eodhistorical_token}`, {
                             "Content-type": "application/json",
                         })
+
+                        console.log('-----------------', 3)
+                        console.log(api_result)
+
 
                         const datum = api_result.data
                         let return_data = [], cur, idx, cnt, to_date = new Date(to);
@@ -408,6 +424,10 @@ class Routing {
                             const api_result = await axios.get(`${config.eodhistorical_price_api}${ticker}.${exchange}?from=${str_from}&to=${str_to}&period=d&fmt=json&api_token=${config.eodhistorical_token}`, {
                                 "Content-type": "application/json",
                             })
+
+                            console.log('-----------------', 4)
+                            console.log(api_result)
+
 
                             const datum = api_result.data
 

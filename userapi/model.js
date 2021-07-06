@@ -1,6 +1,7 @@
 const { Schema, model } = require('mongoose')
 const bcrypt = require('bcrypt-nodejs')
 const { getTimeZone } = require('./helper')
+const moment = require('moment-timezone')
 
 const usersSchema = new Schema({
 	username: {
@@ -191,6 +192,10 @@ const priceSchema = new Schema({
 
 priceSchema.pre('save', function (next) {
 	const price = this
+	// let time = moment.tz(price.date, "Europe/London")
+	// time.utc("+530").format()
+
+	// price.date = time
 	next();
 })
 
