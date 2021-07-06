@@ -273,98 +273,28 @@ class Routing {
             }
         }
         else if (req.path == '/get_price') {
-            const ticker = req.query.ticker;
-            const exchange = req.query.exchange;
-            const from = req.query.from
-            const to = req.query.to
+            const ticker = req.body.ticker;
+            const exchange = req.body.exchange;
+            const from = req.body.from
+            const to = req.body.to
 
-            // const result = await create(insert_data, PriceModel)
+            console.log(req.body)
 
-            // const user_id = await sessionUpdate(req, SessionModel);
+            if (ticker !== undefined && exchange !== undefined && ticker !== 'UNKNOWN' && exchange !== 'UNKNOWN') {
+                // const result = await create(insert_data, PriceModel)
 
-            const collection_name = `${ticker}_${exchange}`
+                // const user_id = await sessionUpdate(req, SessionModel);
 
-            //if (user_id) {
-            const PriceModel = mongoose.model(collection_name, priceSchema)
+                const collection_name = `${ticker}_${exchange}`
+
+                //if (user_id) {
+                const PriceModel = mongoose.model(collection_name, priceSchema)
 
 
-            let recent_data = await PriceModel.find({ date: { $gte: new Date(from), $lte: new Date(to) } })/*.select({ date: 1 }).exec();*/
-            const DAY_TIME = 24 * 60 * 60 * 1000
+                let recent_data = await PriceModel.find({ date: { $gte: new Date(from), $lte: new Date(to) } })/*.select({ date: 1 }).exec();*/
+                const DAY_TIME = 24 * 60 * 60 * 1000
 
-            if (recent_data.length === 0) {
-                const api_result = await axios.get(`${config.eodhistorical_price_api}${ticker}.${exchange}?from=${from}&to=${to}&period=d&fmt=json&api_token=${config.eodhistorical_token}`, {
-                    "Content-type": "application/json",
-                })
-
-                const datum = api_result.data
-                let return_data = [], cur, idx, cnt, to_date = new Date(to);
-
-                for (cur = new Date(from), idx = 0, cnt = 0; cur.getTime() <= to_date.getTime(); cur.setDate(cur.getDate() + 1)) {
-                    if (idx >= datum.length) {
-                        const result = await create({ ...datum[length - 1], date: cur }, PriceModel)
-                        return_data.push(result);
-                    } else {
-                        const tmp_date = new Date(datum[idx].date)
-                        if (tmp_date.getTime() / DAY_TIME == cur.getTime() / DAY_TIME) {
-                            const result = await create(datum[idx], PriceModel)
-                            return_data.push(result);
-                            idx++
-                        }
-                        else {
-                            if (idx != 0) {
-                                const result = await create({ ...datum[idx - 1], date: cur }, PriceModel)
-                                return_data.push(result);
-                            }
-                            else {
-                                cnt++
-                            }
-                        }
-                    }
-                }
-
-                let req_to = new Date(from), req_from = new Date(from);
-                req_from.setDate(req_from.getDate() - 3);
-                while (1) {
-                    let str_from, str_to;
-                    str_from = req_from.toISOString().slice(0, 10);
-                    str_to = req_to.toISOString().slice(0, 10);
-
-                    const api_result = await axios.get(`${config.eodhistorical_price_api}${ticker}.${exchange}?from=${str_from}&to=${str_to}&period=d&fmt=json&api_token=${config.eodhistorical_token}`, {
-                        "Content-type": "application/json",
-                    })
-
-                    const datum = api_result.data
-
-                    if (datum.length == 0) {
-                        req_from.setDate(req_from.getDate() - 3)
-                        req_to.setDate(req_to.getDate() - 3)
-                    }
-                    else {
-                        for (cur = new Date(from), idx = datum.length - 1; cnt > 0; cur.setDate(cur.getDate() + 1), cnt--) {
-                            const result = await create({ ...datum[idx], date: cur }, PriceModel)
-                            return_data.push(result);
-                        }
-                        break;
-                    }
-                };
-
-                return PriceModel.find({ date: { $gte: new Date(from), $lte: new Date(to) } })
-                    .sort({ date: 1 })
-                    .exec()
-                    .then(data => {
-                        return res.json({ status: 1, data: data })
-                    })
-                    .catch(console.log);
-            }
-            else {
-                const from_d = new Date(from);
-                const to_d = new Date(to);
-                const days = (to_d.getTime() - from_d.getTime()) / DAY_TIME + 1;
-
-                if (recent_data.length == days) {
-                    return res.json({ status: 1, data: recent_data })
-                }
-                else {
+                if (recent_data.length === 0) {
                     const api_result = await axios.get(`${config.eodhistorical_price_api}${ticker}.${exchange}?from=${from}&to=${to}&period=d&fmt=json&api_token=${config.eodhistorical_token}`, {
                         "Content-type": "application/json",
                     })
@@ -374,18 +304,18 @@ class Routing {
 
                     for (cur = new Date(from), idx = 0, cnt = 0; cur.getTime() <= to_date.getTime(); cur.setDate(cur.getDate() + 1)) {
                         if (idx >= datum.length) {
-                            const result = await updatePrice({ ...datum[length - 1], date: cur }, PriceModel)
+                            const result = await create({ ...datum[datum.length - 1], date: cur }, PriceModel)
                             return_data.push(result);
                         } else {
                             const tmp_date = new Date(datum[idx].date)
                             if (tmp_date.getTime() / DAY_TIME == cur.getTime() / DAY_TIME) {
-                                const result = await updatePrice(datum[idx], PriceModel)
+                                const result = await create(datum[idx], PriceModel)
                                 return_data.push(result);
                                 idx++
                             }
                             else {
                                 if (idx != 0) {
-                                    const result = await updatePrice({ ...datum[idx - 1], date: cur }, PriceModel)
+                                    const result = await create({ ...datum[idx - 1], date: cur }, PriceModel)
                                     return_data.push(result);
                                 }
                                 else {
@@ -414,7 +344,7 @@ class Routing {
                         }
                         else {
                             for (cur = new Date(from), idx = datum.length - 1; cnt > 0; cur.setDate(cur.getDate() + 1), cnt--) {
-                                const result = await updatePrice({ ...datum[idx], date: cur }, PriceModel)
+                                const result = await create({ ...datum[idx], date: cur }, PriceModel)
                                 return_data.push(result);
                             }
                             break;
@@ -429,8 +359,85 @@ class Routing {
                         })
                         .catch(console.log);
                 }
+                else {
+                    const from_d = new Date(from);
+                    const to_d = new Date(to);
+                    const days = (to_d.getTime() - from_d.getTime()) / DAY_TIME + 1;
+
+                    if (recent_data.length == days) {
+                        return res.json({ status: 1, data: recent_data })
+                    }
+                    else {
+                        const api_result = await axios.get(`${config.eodhistorical_price_api}${ticker}.${exchange}?from=${from}&to=${to}&period=d&fmt=json&api_token=${config.eodhistorical_token}`, {
+                            "Content-type": "application/json",
+                        })
+
+                        const datum = api_result.data
+                        let return_data = [], cur, idx, cnt, to_date = new Date(to);
+
+                        for (cur = new Date(from), idx = 0, cnt = 0; cur.getTime() <= to_date.getTime(); cur.setDate(cur.getDate() + 1)) {
+                            if (idx >= datum.length) {
+                                const result = await updatePrice({ ...datum[datum.length - 1], date: cur }, PriceModel)
+                                return_data.push(result);
+                            } else {
+                                const tmp_date = new Date(datum[idx].date)
+                                if (tmp_date.getTime() / DAY_TIME == cur.getTime() / DAY_TIME) {
+                                    const result = await updatePrice(datum[idx], PriceModel)
+                                    return_data.push(result);
+                                    idx++
+                                }
+                                else {
+                                    if (idx != 0) {
+                                        const result = await updatePrice({ ...datum[idx - 1], date: cur }, PriceModel)
+                                        return_data.push(result);
+                                    }
+                                    else {
+                                        cnt++
+                                    }
+                                }
+                            }
+                        }
+
+                        let req_to = new Date(from), req_from = new Date(from);
+                        req_from.setDate(req_from.getDate() - 3);
+                        while (1) {
+                            let str_from, str_to;
+                            str_from = req_from.toISOString().slice(0, 10);
+                            str_to = req_to.toISOString().slice(0, 10);
+
+                            const api_result = await axios.get(`${config.eodhistorical_price_api}${ticker}.${exchange}?from=${str_from}&to=${str_to}&period=d&fmt=json&api_token=${config.eodhistorical_token}`, {
+                                "Content-type": "application/json",
+                            })
+
+                            const datum = api_result.data
+
+                            if (datum.length == 0) {
+                                req_from.setDate(req_from.getDate() - 3)
+                                req_to.setDate(req_to.getDate() - 3)
+                            }
+                            else {
+                                for (cur = new Date(from), idx = datum.length - 1; cnt > 0; cur.setDate(cur.getDate() + 1), cnt--) {
+                                    const result = await updatePrice({ ...datum[idx], date: cur }, PriceModel)
+                                    return_data.push(result);
+                                }
+                                break;
+                            }
+                        };
+
+                        return PriceModel.find({ date: { $gte: new Date(from), $lte: new Date(to) } })
+                            .sort({ date: 1 })
+                            .exec()
+                            .then(data => {
+                                return res.json({ status: 1, data: data })
+                            })
+                            .catch(console.log);
+                    }
+                }
+                //}
             }
-            //}
+            else {
+                return res.json({ status: 0, data: [] })
+            }
         }
     }
 }
