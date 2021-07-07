@@ -296,7 +296,7 @@ class Routing {
                 const PriceModel = mongoose.model(collection_name, priceSchema)
 
 
-                let recent_data = await PriceModel.find({ date: { $gte: new Date(from), $lte: new Date(to) } })/*.select({ date: 1 }).exec();*/
+                let recent_data = await PriceModel.find({ date: { $gte: moment.tz(new Date(from), "Etc/UTC").add('5', 'hours'), $lte: moment.tz(new Date(to), "Etc/UTC").add('5', 'hours') } })/*.select({ date: 1 }).exec();*/
                 const DAY_TIME = 24 * 60 * 60 * 1000
 
                 if (recent_data.length === 0) {
@@ -363,7 +363,7 @@ class Routing {
                         }
                     };
 
-                    return PriceModel.find({ date: { $gte: new Date(from), $lte: new Date(to) } })
+                    return PriceModel.find({ date: { $gte: moment.tz(new Date(from), "Etc/UTC").add('5', 'hours'), $lte: moment.tz(new Date(to), "Etc/UTC").add('5', 'hours') } })
                         .sort({ date: 1 })
                         .exec()
                         .then(data => {
@@ -444,7 +444,7 @@ class Routing {
                             }
                         };
 
-                        return PriceModel.find({ date: { $gte: new Date(from), $lte: new Date(to) } })
+                        return PriceModel.find({ date: { $gte: moment.tz(new Date(from), "Etc/UTC").add('5', 'hours'), $lte: moment.tz(new Date(to), "Etc/UTC").add('5', 'hours') } })
                             .sort({ date: 1 })
                             .exec()
                             .then(data => {
@@ -460,15 +460,15 @@ class Routing {
             }
         }
         else if (req.path == '/get_currency') {
-            // const current_currency = req.body.current_currency;
-            // const base_currency = req.body.base_currency;
-            // const from = req.body.from
-            // const to = req.body.to
+            const current_currency = req.body.current_currency;
+            const base_currency = req.body.base_currency;
+            const from = req.body.from
+            const to = req.body.to
 
-            const current_currency = req.query.current_currency;
-            const base_currency = req.query.base_currency;
-            const from = req.query.from
-            const to = req.query.to
+            // const current_currency = req.query.current_currency;
+            // const base_currency = req.query.base_currency;
+            // const from = req.query.from
+            // const to = req.query.to
 
             if (current_currency !== undefined && current_currency !== undefined) {
 
@@ -478,7 +478,7 @@ class Routing {
                 const PriceModel = mongoose.model(collection_name, priceSchema)
 
 
-                let recent_data = await PriceModel.find({ date: { $gte: new Date(from), $lte: new Date(to) } })/*.select({ date: 1 }).exec();*/
+                let recent_data = await PriceModel.find({ date: { $gte: moment.tz(new Date(from), "Etc/UTC").add('5', 'hours'), $lte: moment.tz(new Date(to), "Etc/UTC").add('5', 'hours') } })/*.select({ date: 1 }).exec();*/
                 const DAY_TIME = 24 * 60 * 60 * 1000
 
                 if (recent_data.length === 0) {
@@ -519,7 +519,7 @@ class Routing {
                         str_from = req_from.toISOString().slice(0, 10);
                         str_to = req_to.toISOString().slice(0, 10);
 
-                        const api_result = await axios.get(`${config.eodhistorical_price_api}${current_currency}${base_currency}.FOREX?api_token=${config.eodhistorical_token}&order=d&fmt=json&from=${from}&to=${to}`, {
+                        const api_result = await axios.get(`${config.eodhistorical_price_api}${current_currency}${base_currency}.FOREX?api_token=${config.eodhistorical_token}&order=d&fmt=json&from=${str_from}&to=${str_to}`, {
                             "Content-type": "application/json",
                         })
 
@@ -538,7 +538,7 @@ class Routing {
                         }
                     };
 
-                    return PriceModel.find({ date: { $gte: new Date(from), $lte: new Date(to) } })
+                    return PriceModel.find({ date: { $gte: moment.tz(new Date(from), "Etc/UTC").add('5', 'hours'), $lte: moment.tz(new Date(to), "Etc/UTC").add('5', 'hours') } })
                         .sort({ date: 1 })
                         .exec()
                         .then(data => {
@@ -592,7 +592,7 @@ class Routing {
                             str_from = req_from.toISOString().slice(0, 10);
                             str_to = req_to.toISOString().slice(0, 10);
 
-                            const api_result = await axios.get(`${config.eodhistorical_price_api}${current_currency}${base_currency}.FOREX?api_token=${config.eodhistorical_token}&order=d&fmt=json&from=${from}&to=${to}`, {
+                            const api_result = await axios.get(`${config.eodhistorical_price_api}${current_currency}${base_currency}.FOREX?api_token=${config.eodhistorical_token}&order=d&fmt=json&from=${str_from}&to=${str_to}`, {
                                 "Content-type": "application/json",
                             })
 
@@ -611,7 +611,7 @@ class Routing {
                             }
                         };
 
-                        return PriceModel.find({ date: { $gte: new Date(from), $lte: new Date(to) } })
+                        return PriceModel.find({ date: { $gte: moment.tz(new Date(from), "Etc/UTC").add('5', 'hours'), $lte: moment.tz(new Date(to), "Etc/UTC").add('5', 'hours') } })
                             .sort({ date: 1 })
                             .exec()
                             .then(data => {
