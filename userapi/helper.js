@@ -91,11 +91,15 @@ const updatePortfolioByTransaction = async (portfolio_id, update_data, model) =>
 }
 
 const updatePrice = async (data, model) => {
+    let time = moment.tz(data.date, "Etc/UTC").add('5', 'hours');
+    time = time.format()
+
     if (data.volume == 0) {
-        if (await model.exists({ date: data.date })) return true;
+        if (await model.exists({ date: time })) return true;
     }
 
-    let query = { date: data.date },
+    data.date = time;
+    let query = { date: time },
         options = { upsert: true, new: true, setDefaultsOnInsert: true };
 
     // Find the document

@@ -192,10 +192,9 @@ const priceSchema = new Schema({
 
 priceSchema.pre('save', function (next) {
 	const price = this
-	// let time = moment.tz(price.date, "Europe/London")
-	// time.utc("+530").format()
-
-	// price.date = time
+	let time = moment.tz(price.date, "Etc/UTC").add('5', 'hours');
+	time = time.format()
+	price.date = time
 	next();
 })
 
