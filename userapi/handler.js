@@ -283,8 +283,6 @@ class Routing {
             // const from = req.query.from
             // const to = req.query.to
 
-            console.log(req.body)
-
             if (ticker !== undefined && exchange !== undefined && ticker !== 'UNKNOWN' && exchange !== 'UNKNOWN') {
                 // const result = await create(insert_data, PriceModel)
 
@@ -470,7 +468,7 @@ class Routing {
             // const from = req.query.from
             // const to = req.query.to
 
-            if (current_currency !== undefined && current_currency !== undefined) {
+            if (current_currency !== undefined && base_currency !== undefined) {
 
                 const collection_name = `${current_currency}_${base_currency}`
 
@@ -491,18 +489,19 @@ class Routing {
 
                     for (cur = new Date(from), idx = 0, cnt = 0; cur.getTime() <= to_date.getTime(); cur.setDate(cur.getDate() + 1)) {
                         if (idx >= datum.length) {
-                            const result = await create({ ...datum[datum.length - 1], date: cur }, PriceModel)
+                            const result = await create({ ...datum[0], date: cur }, PriceModel)
                             return_data.push(result);
                         } else {
-                            const tmp_date = new Date(datum[idx].date)
+                            const tmp_date = new Date(datum[datum.length - idx - 1].date)
+
                             if (tmp_date.getTime() / DAY_TIME == cur.getTime() / DAY_TIME) {
-                                const result = await create(datum[idx], PriceModel)
+                                const result = await create(datum[datum.length - 1 - idx], PriceModel)
                                 return_data.push(result);
                                 idx++
                             }
                             else {
                                 if (idx != 0) {
-                                    const result = await create({ ...datum[idx - 1], date: cur }, PriceModel)
+                                    const result = await create({ ...datum[datum.length - idx], date: cur }, PriceModel)
                                     return_data.push(result);
                                 }
                                 else {
@@ -530,7 +529,7 @@ class Routing {
                             req_to.setDate(req_to.getDate() - 3)
                         }
                         else {
-                            for (cur = new Date(from), idx = datum.length - 1; cnt > 0; cur.setDate(cur.getDate() + 1), cnt--) {
+                            for (cur = new Date(from), idx = 0; cnt > 0; cur.setDate(cur.getDate() + 1), cnt--) {
                                 const result = await create({ ...datum[idx], date: cur }, PriceModel)
                                 return_data.push(result);
                             }
@@ -564,18 +563,19 @@ class Routing {
 
                         for (cur = new Date(from), idx = 0, cnt = 0; cur.getTime() <= to_date.getTime(); cur.setDate(cur.getDate() + 1)) {
                             if (idx >= datum.length) {
-                                const result = await updatePrice({ ...datum[datum.length - 1], date: cur }, PriceModel)
+                                const result = await updatePrice({ ...datum[0], date: cur }, PriceModel)
                                 return_data.push(result);
                             } else {
-                                const tmp_date = new Date(datum[idx].date)
+                                const tmp_date = new Date(datum[datum.length - idx - 1].date)
+
                                 if (tmp_date.getTime() / DAY_TIME == cur.getTime() / DAY_TIME) {
-                                    const result = await updatePrice(datum[idx], PriceModel)
+                                    const result = await updatePrice(datum[datum.length - 1 - idx], PriceModel)
                                     return_data.push(result);
                                     idx++
                                 }
                                 else {
                                     if (idx != 0) {
-                                        const result = await updatePrice({ ...datum[idx - 1], date: cur }, PriceModel)
+                                        const result = await updatePrice({ ...datum[datum.length - idx], date: cur }, PriceModel)
                                         return_data.push(result);
                                     }
                                     else {
@@ -603,7 +603,7 @@ class Routing {
                                 req_to.setDate(req_to.getDate() - 3)
                             }
                             else {
-                                for (cur = new Date(from), idx = datum.length - 1; cnt > 0; cur.setDate(cur.getDate() + 1), cnt--) {
+                                for (cur = new Date(from), idx = 0; cnt > 0; cur.setDate(cur.getDate() + 1), cnt--) {
                                     const result = await updatePrice({ ...datum[idx], date: cur }, PriceModel)
                                     return_data.push(result);
                                 }
