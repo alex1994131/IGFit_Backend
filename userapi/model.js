@@ -20,6 +20,10 @@ const usersSchema = new Schema({
 		type: Array,
 		default: []
 	},
+	currency: {
+		type: String,
+		default: ''
+	},
 	createdAt: {
 		type: Date
 	},
