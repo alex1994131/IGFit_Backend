@@ -112,13 +112,13 @@ class Routing {
             }
             else {
                 let result = await UserModel.updateOne({ _id: user_id }, { $set: { currency: currency } });
-
-                if (result) {
+                const userInfo = await UserModel.findById(user_id)
+                if (userInfo) {
                     const row = {
-                        email: result.email,
-                        username: result.username,
-                        portofolio: result.portfolio,
-                        currency: result.currency
+                        email: userInfo.email,
+                        username: userInfo.username,
+                        portofolio: userInfo.portfolio,
+                        currency: userInfo.currency
                     }
 
                     return res.json({ status: true, data: row })
