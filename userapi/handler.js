@@ -103,6 +103,32 @@ class Routing {
 
             return res.json({ status: true, user: row })
         }
+        else if (req.path == '/update_basecurrency') {
+            const currency = req.body.currency
+
+            const user_id = await sessionUpdate(req, SessionModel);
+            if (!user_id) {
+                return res.json({ status: false, message: "Sorry, we can't find Session record." })
+            }
+            else {
+                let result = await UserModel.updateOne({ _id: user_id }, { $set: { currency: currency } });
+
+                if (result) {
+                    const row = {
+                        email: result.email,
+                        username: result.username,
+                        portofolio: result.portfolio,
+                        currency: result.currency
+                    }
+
+                    return res.json({ status: true, data: row })
+                }
+                else {
+                    return res.json({ status: false, data: "Sorry, we can't update user base currency." })
+                }
+            }
+
+        }
         else if (req.path == '/signout') {
             const token = req.body;
             const accessToken = token.token
