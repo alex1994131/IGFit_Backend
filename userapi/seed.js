@@ -1709,8 +1709,8 @@ async function main() {
 					let temp = {}
 
 					if (datum.length === 0) {
-						ticker = 'UNKNOWN'
-						exchange = 'UNKNOWN'
+						ticker = '[TICKER]'
+						exchange = '[TICKER]'
 					}
 					else {
 						for (var j = 0; j < datum.length; j++) {
@@ -1731,8 +1731,8 @@ async function main() {
 						exchange = temp.Exchange
 					}
 				} catch (e) {
-					ticker = 'UNKNOWN'
-					exchange = 'UNKNOWN'
+					ticker = '[TICKER]'
+					exchange = '[TICKER]'
 				}
 
 				insert_data.ticker = ticker;
