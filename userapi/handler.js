@@ -83,11 +83,8 @@ class Routing {
             }
         }
         else if (req.path == '/get_user') {
-            const token = req.body;
-            const accessToken = token.token
-
-            const session_record = await SessionModel.findOne({ token: accessToken })
-            const user_id = session_record.user_id
+            const user_id = await sessionUpdate(req, SessionModel);
+            console.log(user_id)
             if (!user_id) {
                 return res.json({ status: false, message: "Sorry, we can't find Session record." })
             }
@@ -100,7 +97,8 @@ class Routing {
             const row = {
                 email: userInfo.email,
                 username: userInfo.username,
-                portofolio: userInfo.portofolio
+                portofolio: userInfo.portfolio,
+                currency: userInfo.currency
             }
 
             return res.json({ status: true, user: row })
