@@ -293,36 +293,35 @@ class Routing {
                 //if (user_id) {
                 const PriceModel = mongoose.model(collection_name, priceSchema)
 
-
                 let recent_data = await PriceModel.find({ date: { $gte: moment.tz(new Date(from), "Etc/UTC").add('5', 'hours'), $lte: moment.tz(new Date(to), "Etc/UTC").add('5', 'hours') } })/*.select({ date: 1 }).exec();*/
                 const DAY_TIME = 24 * 60 * 60 * 1000
 
+                let new_from = new Date(from);
+                new_from.setDate(new_from.getDate() - 14);
+                const new_from_str = new_from.toISOString().slice(0, 10);
+
                 if (recent_data.length === 0) {
-                    const api_result = await axios.get(`${config.eodhistorical_price_api}${ticker}.${exchange}?from=${from}&to=${to}&period=d&fmt=json&api_token=${config.eodhistorical_token}`, {
+                    const api_result = await axios.get(`${config.eodhistorical_price_api}${ticker}.${exchange}?from=${new_from_str}&to=${to}&period=d&fmt=json&api_token=${config.eodhistorical_token}`, {
                         "Content-type": "application/json",
                     })
 
                     console.log('-----------------', 1)
-                    console.log(api_result)
 
                     const datum = api_result.data
-                    let return_data = [], cur, idx, cnt, to_date = new Date(to);
+                    let cur, lst, idx, cnt, from_date = new Date(from);
 
-                    for (cur = new Date(from), idx = 0, cnt = 0; cur.getTime() <= to_date.getTime(); cur.setDate(cur.getDate() + 1)) {
-                        if (idx >= datum.length) {
-                            const result = await create({ ...datum[datum.length - 1], date: cur }, PriceModel)
-                            return_data.push(result);
+                    for (cur = new Date(to), idx = datum.length - 1, cnt = 0; cur.getTime() >= from_date.getTime(); cur.setDate(cur.getDate() - 1)) {
+                        if (idx == -1) {
+                            break;
                         } else {
                             const tmp_date = new Date(datum[idx].date)
                             if (tmp_date.getTime() / DAY_TIME == cur.getTime() / DAY_TIME) {
                                 const result = await create(datum[idx], PriceModel)
-                                return_data.push(result);
-                                idx++
+                                idx--
                             }
                             else {
-                                if (idx != 0) {
-                                    const result = await create({ ...datum[idx - 1], date: cur }, PriceModel)
-                                    return_data.push(result);
+                                if (idx != datum.length - 1) {
+                                    const result = await create({ ...datum[idx], date: cur }, PriceModel)
                                 }
                                 else {
                                     cnt++
@@ -331,35 +330,39 @@ class Routing {
                         }
                     }
 
-                    let req_to = new Date(from), req_from = new Date(from);
-                    req_from.setDate(req_from.getDate() - 3);
-                    while (1) {
-                        let str_from, str_to;
-                        str_from = req_from.toISOString().slice(0, 10);
-                        str_to = req_to.toISOString().slice(0, 10);
+                    if (cnt > 0 && datum.length > 0) {
+                        for (lst = new Date(to); cnt > 0 && datum.length > 0; lst.setDate(lst.getDate() - 1), cnt--) {
+                            const result = await create({ ...datum[datum.length - 1], date: lst }, PriceModel)
+                        }
+                    }
 
-                        const api_result = await axios.get(`${config.eodhistorical_price_api}${ticker}.${exchange}?from=${str_from}&to=${str_to}&period=d&fmt=json&api_token=${config.eodhistorical_token}`, {
+                    if (idx == -1 && cur.getTime() > from_date.getTime()) {
+                        let newer_from = new Date(from);
+                        newer_from.setDate(newer_from.getDate() - 50);
+                        const newer_from_str = newer_from.toISOString().slice(0, 10);
+
+                        const new_api_result = await axios.get(`${config.eodhistorical_price_api}${ticker}.${exchange}?from=${newer_from_str}&to=${from}&period=d&fmt=json&api_token=${config.eodhistorical_token}`, {
                             "Content-type": "application/json",
                         })
 
-                        console.log('-----------------', 2)
-                        console.log(api_result)
+                        const new_datum = new_api_result.data
 
-
-                        const datum = api_result.data
-
-                        if (datum.length == 0) {
-                            req_from.setDate(req_from.getDate() - 3)
-                            req_to.setDate(req_to.getDate() - 3)
-                        }
-                        else {
-                            for (cur = new Date(from), idx = datum.length - 1; cnt > 0; cur.setDate(cur.getDate() + 1), cnt--) {
-                                const result = await create({ ...datum[idx], date: cur }, PriceModel)
-                                return_data.push(result);
+                        if (new_datum.length == 0) {
+                            for (; cur.getTime() >= from_date.getTime(); cur.setDate(cur.getDate() - 1)) {
+                                const result = await create({ ...datum[0], date: cur }, PriceModel)
                             }
-                            break;
+                        } else {
+                            for (; cur.getTime() >= from_date.getTime() && cnt == 0; cur.setDate(cur.getDate() - 1)) {
+                                const result = await create({ ...new_datum[new_datum.length - 1], date: cur }, PriceModel)
+                            }
+                            if (cnt > 0) {
+                                for (lst = new Date(to); cnt > 0; lst.setDate(lst.getDate() - 1), cnt--) {
+                                    const result = await create({ ...new_datum[new_datum.length - 1], date: lst }, PriceModel)
+                                }
+                            }
                         }
-                    };
+                    }
+
 
                     return PriceModel.find({ date: { $gte: moment.tz(new Date(from), "Etc/UTC").add('5', 'hours'), $lte: moment.tz(new Date(to), "Etc/UTC").add('5', 'hours') } })
                         .sort({ date: 1 })
@@ -375,35 +378,31 @@ class Routing {
                     const days = (to_d.getTime() - from_d.getTime()) / DAY_TIME + 1;
 
                     if (recent_data.length == days) {
+                        console.log('---------------------', 0)
                         return res.json({ status: 1, data: recent_data })
                     }
                     else {
-                        const api_result = await axios.get(`${config.eodhistorical_price_api}${ticker}.${exchange}?from=${from}&to=${to}&period=d&fmt=json&api_token=${config.eodhistorical_token}`, {
+                        const api_result = await axios.get(`${config.eodhistorical_price_api}${ticker}.${exchange}?from=${new_from_str}&to=${to}&period=d&fmt=json&api_token=${config.eodhistorical_token}`, {
                             "Content-type": "application/json",
                         })
 
-                        console.log('-----------------', 3)
-                        console.log(api_result)
-
+                        console.log('-----------------', 1)
 
                         const datum = api_result.data
-                        let return_data = [], cur, idx, cnt, to_date = new Date(to);
+                        let cur, lst, idx, cnt, from_date = new Date(from);
 
-                        for (cur = new Date(from), idx = 0, cnt = 0; cur.getTime() <= to_date.getTime(); cur.setDate(cur.getDate() + 1)) {
-                            if (idx >= datum.length) {
-                                const result = await updatePrice({ ...datum[datum.length - 1], date: cur }, PriceModel)
-                                return_data.push(result);
+                        for (cur = new Date(to), idx = datum.length - 1, cnt = 0; cur.getTime() >= from_date.getTime(); cur.setDate(cur.getDate() - 1)) {
+                            if (idx == -1) {
+                                break;
                             } else {
                                 const tmp_date = new Date(datum[idx].date)
                                 if (tmp_date.getTime() / DAY_TIME == cur.getTime() / DAY_TIME) {
                                     const result = await updatePrice(datum[idx], PriceModel)
-                                    return_data.push(result);
-                                    idx++
+                                    idx--
                                 }
                                 else {
-                                    if (idx != 0) {
-                                        const result = await updatePrice({ ...datum[idx - 1], date: cur }, PriceModel)
-                                        return_data.push(result);
+                                    if (idx != datum.length - 1) {
+                                        const result = await updatePrice({ ...datum[idx], date: cur }, PriceModel)
                                     }
                                     else {
                                         cnt++
@@ -412,35 +411,36 @@ class Routing {
                             }
                         }
 
-                        let req_to = new Date(from), req_from = new Date(from);
-                        req_from.setDate(req_from.getDate() - 3);
-                        while (1) {
-                            let str_from, str_to;
-                            str_from = req_from.toISOString().slice(0, 10);
-                            str_to = req_to.toISOString().slice(0, 10);
+                        if (cnt > 0 && datum.length > 0) {
+                            for (lst = new Date(to); cnt > 0 && datum.length > 0; lst.setDate(lst.getDate() - 1), cnt--) {
+                                const result = await updatePrice({ ...datum[datum.length - 1], date: lst }, PriceModel)
+                            }
+                        }
 
-                            const api_result = await axios.get(`${config.eodhistorical_price_api}${ticker}.${exchange}?from=${str_from}&to=${str_to}&period=d&fmt=json&api_token=${config.eodhistorical_token}`, {
+                        if (idx == -1 && cur.getTime() > from_date.getTime()) {
+                            let newer_from = new Date(from);
+                            newer_from.setDate(newer_from.getDate() - 50);
+                            const newer_from_str = newer_from.toISOString().slice(0, 10);
+
+                            const new_api_result = await axios.get(`${config.eodhistorical_price_api}${ticker}.${exchange}?from=${newer_from_str}&to=${from}&period=d&fmt=json&api_token=${config.eodhistorical_token}`, {
                                 "Content-type": "application/json",
                             })
 
-                            console.log('-----------------', 4)
-                            console.log(api_result)
+                            const new_datum = new_api_result.data
 
+                            if (new_datum.length == 0) {
 
-                            const datum = api_result.data
-
-                            if (datum.length == 0) {
-                                req_from.setDate(req_from.getDate() - 3)
-                                req_to.setDate(req_to.getDate() - 3)
-                            }
-                            else {
-                                for (cur = new Date(from), idx = datum.length - 1; cnt > 0; cur.setDate(cur.getDate() + 1), cnt--) {
-                                    const result = await updatePrice({ ...datum[idx], date: cur }, PriceModel)
-                                    return_data.push(result);
+                            } else {
+                                for (; cur.getTime() >= from_date.getTime() && cnt == 0; cur.setDate(cur.getDate() - 1)) {
+                                    const result = await updatePrice({ ...new_datum[new_datum.length - 1], date: cur }, PriceModel)
                                 }
-                                break;
+                                if (cnt > 0) {
+                                    for (lst = new Date(to); cnt > 0; lst.setDate(lst.getDate() - 1), cnt--) {
+                                        const result = await updatePrice({ ...new_datum[new_datum.length - 1], date: lst }, PriceModel)
+                                    }
+                                }
                             }
-                        };
+                        }
 
                         return PriceModel.find({ date: { $gte: moment.tz(new Date(from), "Etc/UTC").add('5', 'hours'), $lte: moment.tz(new Date(to), "Etc/UTC").add('5', 'hours') } })
                             .sort({ date: 1 })
@@ -470,39 +470,42 @@ class Routing {
 
             if (current_currency !== undefined && base_currency !== undefined) {
 
-                const collection_name = `${current_currency}_${base_currency}`
+                const collection_name = `${base_currency}_${current_currency}`
 
                 //if (user_id) {
                 const PriceModel = mongoose.model(collection_name, priceSchema)
 
-
                 let recent_data = await PriceModel.find({ date: { $gte: moment.tz(new Date(from), "Etc/UTC").add('5', 'hours'), $lte: moment.tz(new Date(to), "Etc/UTC").add('5', 'hours') } })/*.select({ date: 1 }).exec();*/
                 const DAY_TIME = 24 * 60 * 60 * 1000
 
+                let new_from = new Date(from);
+                new_from.setDate(new_from.getDate() - 14);
+                const new_from_str = new_from.toISOString().slice(0, 10);
+
                 if (recent_data.length === 0) {
-                    const api_result = await axios.get(`${config.eodhistorical_price_api}${current_currency}${base_currency}.FOREX?api_token=${config.eodhistorical_token}&order=d&fmt=json&from=${from}&to=${to}`, {
+
+                    const api_result = await axios.get(`${config.eodhistorical_price_api}${base_currency}${current_currency}.FOREX?api_token=${config.eodhistorical_token}&order=d&fmt=json&from=${new_from_str}&to=${to}`, {
                         "Content-type": "application/json",
                     })
 
-                    const datum = api_result.data
-                    let return_data = [], cur, idx, cnt, to_date = new Date(to);
+                    console.log(api_result, '11111111111')
 
-                    for (cur = new Date(from), idx = 0, cnt = 0; cur.getTime() <= to_date.getTime(); cur.setDate(cur.getDate() + 1)) {
+                    const datum = api_result.data
+                    let lst, cur, idx, cnt, from_date = new Date(from);
+
+                    for (cur = new Date(to), idx = 0, cnt = 0; cur.getTime() >= from_date.getTime(); cur.setDate(cur.getDate() - 1)) {
                         if (idx >= datum.length) {
-                            const result = await create({ ...datum[0], date: cur }, PriceModel)
-                            return_data.push(result);
+                            break;
                         } else {
-                            const tmp_date = new Date(datum[datum.length - idx - 1].date)
+                            const tmp_date = new Date(datum[idx].date)
 
                             if (tmp_date.getTime() / DAY_TIME == cur.getTime() / DAY_TIME) {
-                                const result = await create(datum[datum.length - 1 - idx], PriceModel)
-                                return_data.push(result);
+                                const result = await create(datum[idx], PriceModel)
                                 idx++
                             }
                             else {
                                 if (idx != 0) {
-                                    const result = await create({ ...datum[datum.length - idx], date: cur }, PriceModel)
-                                    return_data.push(result);
+                                    const result = await create({ ...datum[idx], date: cur }, PriceModel)
                                 }
                                 else {
                                     cnt++
@@ -511,31 +514,38 @@ class Routing {
                         }
                     }
 
-                    let req_to = new Date(from), req_from = new Date(from);
-                    req_from.setDate(req_from.getDate() - 3);
-                    while (1) {
-                        let str_from, str_to;
-                        str_from = req_from.toISOString().slice(0, 10);
-                        str_to = req_to.toISOString().slice(0, 10);
+                    if (cnt > 0 && datum.length > 0) {
+                        for (lst = new Date(to); cnt > 0; lst.setDate(lst.getDate() - 1), cnt--) {
+                            const result = await create({ ...datum[0], date: lst }, PriceModel)
+                        }
+                    }
 
-                        const api_result = await axios.get(`${config.eodhistorical_price_api}${current_currency}${base_currency}.FOREX?api_token=${config.eodhistorical_token}&order=d&fmt=json&from=${str_from}&to=${str_to}`, {
+                    if (idx == datum.length && cur.getTime() >= from_date.getTime()) {
+                        let newer_from = new Date(from);
+                        newer_from.setDate(newer_from.getDate() - 50);
+                        const newer_from_str = newer_from.toISOString().slice(0, 10);
+
+                        const new_api_result = await axios.get(`${config.eodhistorical_price_api}${base_currency}${current_currency}.FOREX?api_token=${config.eodhistorical_token}&order=d&fmt=json&from=${newer_from_str}&to=${from}`, {
                             "Content-type": "application/json",
                         })
 
-                        const datum = api_result.data
+                        const new_datum = new_api_result.data
 
-                        if (datum.length == 0) {
-                            req_from.setDate(req_from.getDate() - 3)
-                            req_to.setDate(req_to.getDate() - 3)
-                        }
-                        else {
-                            for (cur = new Date(from), idx = 0; cnt > 0; cur.setDate(cur.getDate() + 1), cnt--) {
-                                const result = await create({ ...datum[idx], date: cur }, PriceModel)
-                                return_data.push(result);
+                        if (new_datum.length == 0) {
+                            for (; cur.getTime() >= from_date.getTime(); cur.setDate(cur.getDate() - 1)) {
+                                const result = await create({ ...datum[length - 1], date: cur }, PriceModel)
                             }
-                            break;
+                        } else {
+                            for (; cur.getTime() >= from_date.getTime() && cnt == 0; cur.setDate(cur.getDate() - 1)) {
+                                const result = await create({ ...new_datum[0], date: cur }, PriceModel)
+                            }
+                            if (cnt > 0) {
+                                for (lst = new Date(to); cnt > 0; lst.setDate(lst.getDate() - 1), cnt--) {
+                                    const result = await create({ ...new_datum[0], date: lst }, PriceModel)
+                                }
+                            }
                         }
-                    };
+                    }
 
                     return PriceModel.find({ date: { $gte: moment.tz(new Date(from), "Etc/UTC").add('5', 'hours'), $lte: moment.tz(new Date(to), "Etc/UTC").add('5', 'hours') } })
                         .sort({ date: 1 })
@@ -554,9 +564,11 @@ class Routing {
                         return res.json({ status: 1, data: recent_data })
                     }
                     else {
-                        const api_result = await axios.get(`${config.eodhistorical_price_api}${current_currency}${base_currency}.FOREX?api_token=${config.eodhistorical_token}&order=d&fmt=json&from=${from}&to=${to}`, {
+                        const api_result = await axios.get(`${config.eodhistorical_price_api}${base_currency}${current_currency}.FOREX?api_token=${config.eodhistorical_token}&order=d&fmt=json&from=${from}&to=${to}`, {
                             "Content-type": "application/json",
                         })
+
+                        console.log(api_result, '333333333333')
 
                         const datum = api_result.data
                         let return_data = [], cur, idx, cnt, to_date = new Date(to);
@@ -592,9 +604,11 @@ class Routing {
                             str_from = req_from.toISOString().slice(0, 10);
                             str_to = req_to.toISOString().slice(0, 10);
 
-                            const api_result = await axios.get(`${config.eodhistorical_price_api}${current_currency}${base_currency}.FOREX?api_token=${config.eodhistorical_token}&order=d&fmt=json&from=${str_from}&to=${str_to}`, {
+                            const api_result = await axios.get(`${config.eodhistorical_price_api}${base_currency}${current_currency}.FOREX?api_token=${config.eodhistorical_token}&order=d&fmt=json&from=${str_from}&to=${str_to}`, {
                                 "Content-type": "application/json",
                             })
+
+                            console.log(api_result, '44444444444')
 
                             const datum = api_result.data
 
