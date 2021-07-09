@@ -22,7 +22,7 @@ const usersSchema = new Schema({
 	},
 	currency: {
 		type: String,
-		default: ''
+		default: 'USD'
 	},
 	createdAt: {
 		type: Date

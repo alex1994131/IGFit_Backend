@@ -13,7 +13,8 @@ app.use(cors());
 let userData = {
 	"username": "Alex",
 	"email": "alex@gmail.com",
-	"password": "alex"
+	"password": "alex",
+	"currency": "USD"
 };
 
 let portfolioData = {
@@ -1710,7 +1711,7 @@ async function main() {
 
 					if (datum.length === 0) {
 						ticker = '[TICKER]'
-						exchange = '[TICKER]'
+						exchange = '[EXCHANGE]'
 					}
 					else {
 						for (var j = 0; j < datum.length; j++) {
@@ -1732,7 +1733,7 @@ async function main() {
 					}
 				} catch (e) {
 					ticker = '[TICKER]'
-					exchange = '[TICKER]'
+					exchange = '[EXCHANGE]'
 				}
 
 				insert_data.ticker = ticker;
