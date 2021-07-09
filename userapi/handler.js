@@ -297,10 +297,10 @@ class Routing {
             }
         }
         else if (req.path == '/get_price') {
-            const ticker = req.body.ticker;
-            const exchange = req.body.exchange;
-            const from = req.body.from
-            const to = req.body.to
+            let ticker = req.body.ticker;
+            let exchange = req.body.exchange;
+            let from = req.body.from
+            let to = req.body.to
 
             // const ticker = req.query.ticker;
             // const exchange = req.query.exchange;
@@ -484,10 +484,10 @@ class Routing {
             }
         }
         else if (req.path == '/get_currency') {
-            const current_currency = req.body.current_currency;
-            const base_currency = req.body.base_currency;
-            const from = req.body.from
-            const to = req.body.to
+            let current_currency = req.body.current_currency;
+            let base_currency = req.body.base_currency;
+            let from = req.body.from
+            let to = req.body.to
 
             // const current_currency = req.query.current_currency;
             // const base_currency = req.query.base_currency;
