@@ -374,12 +374,17 @@ class Routing {
           const new_from_str = new_from.toISOString().slice(0, 10);
 
           if (recent_data.length === 0) {
-            const api_result = await axios.get(
-              `${config.eodhistorical_price_api}${ticker}.${exchange}?from=${new_from_str}&to=${to}&period=d&fmt=json&api_token=${config.eodhistorical_token}`,
-              {
-                "Content-type": "application/json",
-              }
-            );
+            let api_result;
+            try {
+              api_result = await axios.get(
+                `${config.eodhistorical_price_api}${ticker}.${exchange}?from=${new_from_str}&to=${to}&period=d&fmt=json&api_token=${config.eodhistorical_token}`,
+                {
+                  "Content-type": "application/json",
+                }
+              );
+            } catch (err) {
+              return res.json({ status: 0 });
+            }
 
             console.log("-----------------", 1);
 
@@ -433,12 +438,17 @@ class Routing {
               newer_from.setDate(newer_from.getDate() - 50);
               const newer_from_str = newer_from.toISOString().slice(0, 10);
 
-              const new_api_result = await axios.get(
-                `${config.eodhistorical_price_api}${ticker}.${exchange}?from=${newer_from_str}&to=${from}&period=d&fmt=json&api_token=${config.eodhistorical_token}`,
-                {
-                  "Content-type": "application/json",
-                }
-              );
+              let new_api_result;
+              try {
+                new_api_result = await axios.get(
+                  `${config.eodhistorical_price_api}${ticker}.${exchange}?from=${newer_from_str}&to=${from}&period=d&fmt=json&api_token=${config.eodhistorical_token}`,
+                  {
+                    "Content-type": "application/json",
+                  }
+                );
+              } catch (err) {
+                return res.json({ status: 0 });
+              }
 
               const new_datum = new_api_result.data;
 
@@ -500,12 +510,17 @@ class Routing {
               console.log("---------------------", 0);
               return res.json({ status: 1, data: recent_data });
             } else {
-              const api_result = await axios.get(
-                `${config.eodhistorical_price_api}${ticker}.${exchange}?from=${new_from_str}&to=${to}&period=d&fmt=json&api_token=${config.eodhistorical_token}`,
-                {
-                  "Content-type": "application/json",
-                }
-              );
+              let api_result;
+              try {
+                api_result = await axios.get(
+                  `${config.eodhistorical_price_api}${ticker}.${exchange}?from=${new_from_str}&to=${to}&period=d&fmt=json&api_token=${config.eodhistorical_token}`,
+                  {
+                    "Content-type": "application/json",
+                  }
+                );
+              } catch (err) {
+                return res.json({ status: 0 });
+              }
 
               console.log("-----------------", 1);
 
@@ -562,12 +577,17 @@ class Routing {
                 newer_from.setDate(newer_from.getDate() - 50);
                 const newer_from_str = newer_from.toISOString().slice(0, 10);
 
-                const new_api_result = await axios.get(
-                  `${config.eodhistorical_price_api}${ticker}.${exchange}?from=${newer_from_str}&to=${from}&period=d&fmt=json&api_token=${config.eodhistorical_token}`,
-                  {
-                    "Content-type": "application/json",
-                  }
-                );
+                let new_api_result;
+                try {
+                  new_api_result = await axios.get(
+                    `${config.eodhistorical_price_api}${ticker}.${exchange}?from=${newer_from_str}&to=${from}&period=d&fmt=json&api_token=${config.eodhistorical_token}`,
+                    {
+                      "Content-type": "application/json",
+                    }
+                  );
+                } catch (err) {
+                  return res.json({ status: 0 });
+                }
 
                 const new_datum = new_api_result.data;
 
@@ -651,12 +671,17 @@ class Routing {
           const new_from_str = new_from.toISOString().slice(0, 10);
 
           if (recent_data.length === 0) {
-            const api_result = await axios.get(
-              `${config.eodhistorical_price_api}${base_currency}${current_currency}.FOREX?api_token=${config.eodhistorical_token}&order=d&fmt=json&from=${new_from_str}&to=${to}`,
-              {
-                "Content-type": "application/json",
-              }
-            );
+            let api_result;
+            try {
+              api_result = await axios.get(
+                `${config.eodhistorical_price_api}${base_currency}${current_currency}.FOREX?api_token=${config.eodhistorical_token}&order=d&fmt=json&from=${new_from_str}&to=${to}`,
+                {
+                  "Content-type": "application/json",
+                }
+              );
+            } catch (err) {
+              return res.json({ status: 0 });
+            }
 
             console.log(api_result, "11111111111");
 
@@ -711,12 +736,17 @@ class Routing {
               newer_from.setDate(newer_from.getDate() - 50);
               const newer_from_str = newer_from.toISOString().slice(0, 10);
 
-              const new_api_result = await axios.get(
-                `${config.eodhistorical_price_api}${base_currency}${current_currency}.FOREX?api_token=${config.eodhistorical_token}&order=d&fmt=json&from=${newer_from_str}&to=${from}`,
-                {
-                  "Content-type": "application/json",
-                }
-              );
+              let new_api_result;
+              try {
+                new_api_result = await axios.get(
+                  `${config.eodhistorical_price_api}${base_currency}${current_currency}.FOREX?api_token=${config.eodhistorical_token}&order=d&fmt=json&from=${newer_from_str}&to=${from}`,
+                  {
+                    "Content-type": "application/json",
+                  }
+                );
+              } catch (err) {
+                return res.json({ status: 0 });
+              }
 
               const new_datum = new_api_result.data;
 
@@ -770,118 +800,134 @@ class Routing {
               })
               .catch(console.log);
           } else {
-            const from_d = new Date(from);
-            const to_d = new Date(to);
-            const days = (to_d.getTime() - from_d.getTime()) / DAY_TIME + 1;
-
-            if (recent_data.length == days) {
-              return res.json({ status: 1, data: recent_data });
-            } else {
-              const api_result = await axios.get(
-                `${config.eodhistorical_price_api}${base_currency}${current_currency}.FOREX?api_token=${config.eodhistorical_token}&order=d&fmt=json&from=${from}&to=${to}`,
+            let api_result;
+            try {
+              api_result = await axios.get(
+                `${config.eodhistorical_price_api}${base_currency}${current_currency}.FOREX?api_token=${config.eodhistorical_token}&order=d&fmt=json&from=${new_from_str}&to=${to}`,
                 {
                   "Content-type": "application/json",
                 }
               );
+            } catch (err) {
+              return res.json({ status: 0 });
+            }
 
-              console.log(api_result, "333333333333");
+            console.log(api_result, "2222222222222222");
 
-              const datum = api_result.data;
-              let return_data = [],
-                cur,
-                idx,
-                cnt,
-                to_date = new Date(to);
+            const datum = api_result.data;
+            let lst,
+              cur,
+              idx,
+              cnt,
+              from_date = new Date(from);
 
-              for (
-                cur = new Date(from), idx = 0, cnt = 0;
-                cur.getTime() <= to_date.getTime();
-                cur.setDate(cur.getDate() + 1)
-              ) {
-                if (idx >= datum.length) {
-                  const result = await updatePrice(
-                    { ...datum[0], date: cur },
-                    PriceModel
-                  );
-                  return_data.push(result);
+            for (
+              cur = new Date(to), idx = 0, cnt = 0;
+              cur.getTime() >= from_date.getTime();
+              cur.setDate(cur.getDate() - 1)
+            ) {
+              if (idx >= datum.length) {
+                break;
+              } else {
+                const tmp_date = new Date(datum[idx].date);
+
+                if (tmp_date.getTime() / DAY_TIME == cur.getTime() / DAY_TIME) {
+                  const result = await updatePrice(datum[idx], PriceModel);
+                  idx++;
                 } else {
-                  const tmp_date = new Date(datum[datum.length - idx - 1].date);
-
-                  if (
-                    tmp_date.getTime() / DAY_TIME ==
-                    cur.getTime() / DAY_TIME
-                  ) {
-                    const result = await updatePrice(
-                      datum[datum.length - 1 - idx],
-                      PriceModel
-                    );
-                    return_data.push(result);
-                    idx++;
-                  } else {
-                    if (idx != 0) {
-                      const result = await updatePrice(
-                        { ...datum[datum.length - idx], date: cur },
-                        PriceModel
-                      );
-                      return_data.push(result);
-                    } else {
-                      cnt++;
-                    }
-                  }
-                }
-              }
-
-              let req_to = new Date(from),
-                req_from = new Date(from);
-              req_from.setDate(req_from.getDate() - 3);
-              while (1) {
-                let str_from, str_to;
-                str_from = req_from.toISOString().slice(0, 10);
-                str_to = req_to.toISOString().slice(0, 10);
-
-                const api_result = await axios.get(
-                  `${config.eodhistorical_price_api}${base_currency}${current_currency}.FOREX?api_token=${config.eodhistorical_token}&order=d&fmt=json&from=${str_from}&to=${str_to}`,
-                  {
-                    "Content-type": "application/json",
-                  }
-                );
-
-                console.log(api_result, "44444444444");
-
-                const datum = api_result.data;
-
-                if (datum.length == 0) {
-                  req_from.setDate(req_from.getDate() - 3);
-                  req_to.setDate(req_to.getDate() - 3);
-                } else {
-                  for (
-                    cur = new Date(from), idx = 0;
-                    cnt > 0;
-                    cur.setDate(cur.getDate() + 1), cnt--
-                  ) {
+                  if (idx != 0) {
                     const result = await updatePrice(
                       { ...datum[idx], date: cur },
                       PriceModel
                     );
-                    return_data.push(result);
+                  } else {
+                    cnt++;
                   }
-                  break;
                 }
               }
-
-              return PriceModel.find({
-                date: {
-                  $gte: moment.tz(new Date(from), "Etc/UTC").add("5", "hours"),
-                  $lte: moment.tz(new Date(to), "Etc/UTC").add("5", "hours"),
-                },
-              })
-                .sort({ date: 1 })
-                .exec()
-                .then((data) => {
-                  return res.json({ status: 1, data: data });
-                })
-                .catch(console.log);
             }
+
+            if (cnt > 0 && datum.length > 0) {
+              for (
+                lst = new Date(to);
+                cnt > 0;
+                lst.setDate(lst.getDate() - 1), cnt--
+              ) {
+                const result = await updatePrice(
+                  { ...datum[0], date: lst },
+                  PriceModel
+                );
+              }
+            }
+
+            if (idx == datum.length && cur.getTime() >= from_date.getTime()) {
+              let newer_from = new Date(from);
+              newer_from.setDate(newer_from.getDate() - 50);
+              const newer_from_str = newer_from.toISOString().slice(0, 10);
+
+              let new_api_result;
+              try {
+                new_api_result = await axios.get(
+                  `${config.eodhistorical_price_api}${base_currency}${current_currency}.FOREX?api_token=${config.eodhistorical_token}&order=d&fmt=json&from=${newer_from_str}&to=${from}`,
+                  {
+                    "Content-type": "application/json",
+                  }
+                );
+              } catch (err) {
+                return res.json({ status: 0 });
+              }
+
+              const new_datum = new_api_result.data;
+
+              if (new_datum.length == 0) {
+                for (
+                  ;
+                  cur.getTime() >= from_date.getTime();
+                  cur.setDate(cur.getDate() - 1)
+                ) {
+                  const result = await updatePrice(
+                    { ...datum[length - 1], date: cur },
+                    PriceModel
+                  );
+                }
+              } else {
+                for (
+                  ;
+                  cur.getTime() >= from_date.getTime() && cnt == 0;
+                  cur.setDate(cur.getDate() - 1)
+                ) {
+                  const result = await updatePrice(
+                    { ...new_datum[0], date: cur },
+                    PriceModel
+                  );
+                }
+                if (cnt > 0) {
+                  for (
+                    lst = new Date(to);
+                    cnt > 0;
+                    lst.setDate(lst.getDate() - 1), cnt--
+                  ) {
+                    const result = await updatePrice(
+                      { ...new_datum[0], date: lst },
+                      PriceModel
+                    );
+                  }
+                }
+              }
+            }
+
+            return PriceModel.find({
+              date: {
+                $gte: moment.tz(new Date(from), "Etc/UTC").add("5", "hours"),
+                $lte: moment.tz(new Date(to), "Etc/UTC").add("5", "hours"),
+              },
+            })
+              .sort({ date: 1 })
+              .exec()
+              .then((data) => {
+                return res.json({ status: 1, data: data });
+              })
+              .catch(console.log);
           }
         } else {
           return res.json({ status: 0, flag: 1 });
