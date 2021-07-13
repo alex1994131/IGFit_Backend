@@ -230,13 +230,11 @@ class Routing {
           exchange: exchange,
           date: transaction.date,
           direction: transaction.direction,
-          price: transaction.price,
-          quantity: transaction.quantity,
-          commission: transaction.commission,
+          price: Number(transaction.price),
+          quantity: Number(transaction.quantity),
+          commission: Number(transaction.commission),
           currency: currency,
-          total:
-            Number(transaction.price) * Number(transaction.quantity) +
-            Number(transaction.commission),
+          total: Number(transaction.price) * Number(transaction.quantity) - Number(transaction.commission),
         };
 
         // const flag = await create(new_transaction, TransactionModel)
