@@ -250,7 +250,9 @@ class Routing {
 							// 	console.log(temp_date)
 							// }
 							
-							api_result = api_result.data
+							api_result = api_result.data.data
+
+							console.log(api_result)
 
 							position[`${ticker}-${exchange}`] = {}
 
@@ -265,7 +267,11 @@ class Routing {
 						}
 					}
 
-					let total_value = Number(position[`${ticker}-${exchange}`].quantity) * Number(position[`${ticker}-${exchange}`].price)
+					let total_value = 0
+
+					for (let [key, element] of Object.entries(position)) {
+						total_value += Number(element.quantity) * Number(element.price)
+					}
 
 					console.log(total_value)
 					console.log(position)
