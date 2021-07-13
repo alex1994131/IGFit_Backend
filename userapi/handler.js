@@ -181,90 +181,111 @@ class Routing {
       }
     } else if (req.path == "/calc_portfolio") {
 			let today_date = new Date();
-			today_date.setDate(today_date.getDate() - 3)
 			today_date = today_date.toISOString().slice(0, 10)
 
-			console.log(today_date)
-
-      const result = await PortfolioModel.find({});
-			
-			for(let i=0; i<result.length; i++) {
-				const transaction = result[i].transaction
-
-				result[i].position = {}
-				let position = {}
-
-				let total_value = 0
-				
-				for(let j=0; j<transaction.length; j++) {
-					const ticker = transaction[j].ticker;
-					const exchange = transaction[j].exchange;
-					const quantity = transaction[j].quantity;
-					
-					if(!(`${ticker}-${exchange}` in position)) {
-
-						let api_result = await axios.get(`${config.eodhistorical_price_api}${ticker}.${exchange}?from=${today_date}&to=${today_date}&period=d&fmt=json&api_token=${config.eodhistorical_token}`,
-							{
-								"Content-type": "application/json",
-							}
-						);
-
-						if(!api_result || api_result.data.length == 0) { 
-							let temp_date = today_date;
-							while(1) {
-								temp_date = new Date(temp_date)
-								temp_date.setDate(temp_date.getDate() - 1)
-								temp_date = temp_date.toISOString().slice(0, 10)
-								
-								api_result = await axios.get(`${config.eodhistorical_price_api}${ticker}.${exchange}?from=${temp_date}&to=${temp_date}&period=d&fmt=json&api_token=${config.eodhistorical_token}`,
-									{
-										"Content-type": "application/json",
-									}
-								);
-
-								if(api_result && api_result.data.length > 0) { 
-									break;
-								}
-							}
-
-							console.log(temp_date)
-						}
-						
-						api_result = api_result.data
-
-						console.log(api_result)
-
-						position[`${ticker}-${exchange}`] = {}
-
-						position[`${ticker}-${exchange}`].ticker = ticker;
-						position[`${ticker}-${exchange}`].exchange = exchange;
-						position[`${ticker}-${exchange}`].price = api_result[0].adjusted_close;
-						position[`${ticker}-${exchange}`].quantity = Number(quantity);
-					}
-					else {
-						position[`${ticker}-${exchange}`].quantity = Number(position[`${ticker}-${exchange}`].quantity) + Number(quantity)
-					}
-
-					total_value += Number(position[`${ticker}-${exchange}`].quantity) * Number(position[`${ticker}-${exchange}`].price)
-				}
-
-				console.log(total_value)
-				console.log('------------')
-				console.log(position)
-
-				await PortfolioModel.updateOne(
-					{ _id: result[i]._id },
-					{ 
-						$set: { 
-							value: total_value,
-							position: position
-						} 
-					}
-				);
+			let user_id
+			let auth_key = req.body.auth_key
+			if(auth_key == "SECRET_BACKEND_IG_API") {
+				user_id = 1
+			}
+			else {
+				user_id = await sessionUpdate(req, SessionModel);
 			}
 
-			return res.json({ status: true });
+			if (user_id) {
+				const result = await PortfolioModel.find({});
+			
+				for(let i=0; i<result.length; i++) {
+					const transaction = result[i].transaction
 
+					result[i].position = {}
+					let position = {}
+
+					for(let j=0; j<transaction.length; j++) {
+						const name = transaction[j].name;
+						const ticker = transaction[j].ticker;
+						const exchange = transaction[j].exchange;
+						const quantity = transaction[j].quantity;
+						
+						if(!(`${ticker}-${exchange}` in position)) {
+
+							// let api_result = await axios.get(`${config.eodhistorical_price_api}${ticker}.${exchange}?from=${today_date}&to=${today_date}&period=d&fmt=json&api_token=${config.eodhistorical_token}`,
+							// 	{
+							// 		"Content-type": "application/json",
+							// 	}
+							// );
+							const parameter = {
+								ticker: ticker,
+								exchange: exchange,
+								from: today_date,
+								to: today_date,
+								auth_key: auth_key
+							}
+
+							let api_result = await axios.create({
+								headers: {
+									"Access-Control-Allow-Origin": "*",
+									'Content-Type': 'application/json'
+								}
+							}).post('https://faasd.tyap.cloud/function/userapi/get_price', parameter);
+
+							// if(!api_result || api_result.data.length == 0) { 
+							// 	let temp_date = today_date;
+							// 	while(1) {
+							// 		temp_date = new Date(temp_date)
+							// 		temp_date.setDate(temp_date.getDate() - 1)
+							// 		temp_date = temp_date.toISOString().slice(0, 10)
+									
+							// 		api_result = await axios.get(`${config.eodhistorical_price_api}${ticker}.${exchange}?from=${temp_date}&to=${temp_date}&period=d&fmt=json&api_token=${config.eodhistorical_token}`,
+							// 			{
+							// 				"Content-type": "application/json",
+							// 			}
+							// 		);
+
+							// 		if(api_result && api_result.data.length > 0) { 
+							// 			break;
+							// 		}
+							// 	}
+
+							// 	console.log(temp_date)
+							// }
+							
+							api_result = api_result.data
+
+							position[`${ticker}-${exchange}`] = {}
+
+							position[`${ticker}-${exchange}`].name = name
+							position[`${ticker}-${exchange}`].ticker = ticker;
+							position[`${ticker}-${exchange}`].exchange = exchange;
+							position[`${ticker}-${exchange}`].price = api_result[0].adjusted_close;
+							position[`${ticker}-${exchange}`].quantity = Number(quantity);
+						}
+						else {
+							position[`${ticker}-${exchange}`].quantity = Number(position[`${ticker}-${exchange}`].quantity) + Number(quantity)
+						}
+					}
+
+					let total_value = Number(position[`${ticker}-${exchange}`].quantity) * Number(position[`${ticker}-${exchange}`].price)
+
+					console.log(total_value)
+					console.log(position)
+
+					await PortfolioModel.updateOne(
+						{ _id: result[i]._id },
+						{ 
+							$set: { 
+								value: total_value,
+								position: position
+							} 
+						}
+					);
+				}
+
+				return res.json({ status: true });
+			}
+			else {
+				return res.json({ status: false });
+			}
     } else if (req.path == "/new_portfolio") {
       const portfolio = req.body;
 
@@ -454,7 +475,15 @@ class Routing {
       to = new Date(to).toISOString().slice(0, 10);
 
       if (ticker !== undefined && exchange !== undefined) {
-        const user_id = await sessionUpdate(req, SessionModel);
+        let user_id
+				
+				if(req.body.auth_key == "SECRET_BACKEND_IG_API") {
+					user_id = 1
+				}
+				else {
+					user_id = await sessionUpdate(req, SessionModel);
+				}
+				
         if (user_id) {
           const collection_name = `${ticker}_${exchange}`;
           const PriceModel = mongoose.model(collection_name, priceSchema);
