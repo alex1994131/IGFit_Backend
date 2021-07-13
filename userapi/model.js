@@ -113,6 +113,10 @@ const PortfolioSchema = new Schema({
     type: Array,
     default: [],
   },
+  position: {
+    type: Object,
+    default: {},
+  },
   created_at: {
     type: Date,
     require: true,

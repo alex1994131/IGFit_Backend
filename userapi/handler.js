@@ -179,6 +179,92 @@ class Routing {
           data: "Sorry, we can't find portfolio record.",
         });
       }
+    } else if (req.path == "/calc_portfolio") {
+			let today_date = new Date();
+			today_date.setDate(today_date.getDate() - 3)
+			today_date = today_date.toISOString().slice(0, 10)
+
+			console.log(today_date)
+
+      const result = await PortfolioModel.find({});
+			
+			for(let i=0; i<result.length; i++) {
+				const transaction = result[i].transaction
+
+				result[i].position = {}
+				let position = {}
+
+				let total_value = 0
+				
+				for(let j=0; j<transaction.length; j++) {
+					const ticker = transaction[j].ticker;
+					const exchange = transaction[j].exchange;
+					const quantity = transaction[j].quantity;
+					
+					if(!(`${ticker}-${exchange}` in position)) {
+
+						let api_result = await axios.get(`${config.eodhistorical_price_api}${ticker}.${exchange}?from=${today_date}&to=${today_date}&period=d&fmt=json&api_token=${config.eodhistorical_token}`,
+							{
+								"Content-type": "application/json",
+							}
+						);
+
+						if(!api_result || api_result.data.length == 0) { 
+							let temp_date = today_date;
+							while(1) {
+								temp_date = new Date(temp_date)
+								temp_date.setDate(temp_date.getDate() - 1)
+								temp_date = temp_date.toISOString().slice(0, 10)
+								
+								api_result = await axios.get(`${config.eodhistorical_price_api}${ticker}.${exchange}?from=${temp_date}&to=${temp_date}&period=d&fmt=json&api_token=${config.eodhistorical_token}`,
+									{
+										"Content-type": "application/json",
+									}
+								);
+
+								if(api_result && api_result.data.length > 0) { 
+									break;
+								}
+							}
+
+							console.log(temp_date)
+						}
+						
+						api_result = api_result.data
+
+						console.log(api_result)
+
+						position[`${ticker}-${exchange}`] = {}
+
+						position[`${ticker}-${exchange}`].ticker = ticker;
+						position[`${ticker}-${exchange}`].exchange = exchange;
+						position[`${ticker}-${exchange}`].price = api_result[0].adjusted_close;
+						position[`${ticker}-${exchange}`].quantity = Number(quantity);
+					}
+					else {
+						position[`${ticker}-${exchange}`].quantity = Number(position[`${ticker}-${exchange}`].quantity) + Number(quantity)
+					}
+
+					total_value += Number(position[`${ticker}-${exchange}`].quantity) * Number(position[`${ticker}-${exchange}`].price)
+				}
+
+				console.log(total_value)
+				console.log('------------')
+				console.log(position)
+
+				await PortfolioModel.updateOne(
+					{ _id: result[i]._id },
+					{ 
+						$set: { 
+							value: total_value,
+							position: position
+						} 
+					}
+				);
+			}
+
+			return res.json({ status: true });
+
     } else if (req.path == "/new_portfolio") {
       const portfolio = req.body;
 
