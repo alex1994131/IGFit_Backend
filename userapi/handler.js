@@ -165,6 +165,20 @@ class Routing {
           message: "Sorry, we can't find user record.",
         });
       }
+    } else if (req.path == "/get_portfolioOne") {
+
+      const portfolio_id = req.body.id
+
+      const user_id = await sessionUpdate(req, SessionModel);
+      if (user_id) {
+        const result = await PortfolioModel.findOne({ _id: portfolio_id });
+        return res.json({ status: true, data: result });
+      } else {
+        return res.json({
+          status: false,
+          data: "Sorry, we can't find portfolio record.",
+        });
+      }
     } else if (req.path == "/new_portfolio") {
       const portfolio = req.body;
 
