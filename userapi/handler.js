@@ -347,10 +347,10 @@ class Routing {
       let from = req.body.from;
       let to = req.body.to;
 
-      // const ticker = req.query.ticker;
-      // const exchange = req.query.exchange;
-      // const from = req.query.from
-      // const to = req.query.to
+      // let ticker = req.query.ticker;
+      // let exchange = req.query.exchange;
+      // let from = req.query.from
+      // let to = req.query.to
 
       from = new Date(from).toISOString().slice(0, 10);
       to = new Date(to).toISOString().slice(0, 10);
@@ -644,17 +644,17 @@ class Routing {
       let from = req.body.from;
       let to = req.body.to;
 
-      // const current_currency = req.query.current_currency;
-      // const base_currency = req.query.base_currency;
-      // const from = req.query.from
-      // const to = req.query.to
+      // let current_currency = req.query.current_currency;
+      // let base_currency = req.query.base_currency;
+      // let from = req.query.from
+      // let to = req.query.to
 
       from = new Date(from).toISOString().slice(0, 10);
       to = new Date(to).toISOString().slice(0, 10);
 
       if (current_currency !== undefined && base_currency !== undefined) {
-        const user_id = await sessionUpdate(req, SessionModel);
-        if (user_id) {
+        // const user_id = await sessionUpdate(req, SessionModel);
+        // if (user_id) {
           const collection_name = `${base_currency}_${current_currency}`;
           const PriceModel = mongoose.model(collection_name, priceSchema);
 
@@ -671,95 +671,129 @@ class Routing {
           const new_from_str = new_from.toISOString().slice(0, 10);
 
           if (recent_data.length === 0) {
-            let api_result;
-            try {
-              api_result = await axios.get(
-                `${config.eodhistorical_price_api}${base_currency}${current_currency}.FOREX?api_token=${config.eodhistorical_token}&order=d&fmt=json&from=${new_from_str}&to=${to}`,
-                {
-                  "Content-type": "application/json",
+            if(current_currency === base_currency) {
+              let cur;
+              console.log('This is place')
+              for(cur = new Date(from); cur.getTime() <= new Date(to).getTime(); cur.setDate(cur.getDate() + 1)) {
+                const temp = {
+                  date: cur,
+                  open: 1,
+                  high: 1,
+                  low: 1,
+                  close: 1,
+                  adjusted_close: 1,
+                  volume: 1
                 }
-              );
-            } catch (err) {
-              return res.json({ status: 0 });
-            }
-
-            console.log(api_result, "11111111111");
-
-            const datum = api_result.data;
-            let lst,
-              cur,
-              idx,
-              cnt,
-              from_date = new Date(from);
-
-            for (
-              cur = new Date(to), idx = 0, cnt = 0;
-              cur.getTime() >= from_date.getTime();
-              cur.setDate(cur.getDate() - 1)
-            ) {
-              if (idx >= datum.length) {
-                break;
-              } else {
-                const tmp_date = new Date(datum[idx].date);
-
-                if (tmp_date.getTime() / DAY_TIME == cur.getTime() / DAY_TIME) {
-                  const result = await create(datum[idx], PriceModel);
-                  idx++;
-                } else {
-                  if (idx != 0) {
-                    const result = await create(
-                      { ...datum[idx], date: cur },
-                      PriceModel
-                    );
-                  } else {
-                    cnt++;
-                  }
-                }
-              }
-            }
-
-            if (cnt > 0 && datum.length > 0) {
-              for (
-                lst = new Date(to);
-                cnt > 0;
-                lst.setDate(lst.getDate() - 1), cnt--
-              ) {
+                
                 const result = await create(
-                  { ...datum[0], date: lst },
+                  { ...temp, date: cur },
                   PriceModel
                 );
               }
+
+              return PriceModel.find({
+                date: {
+                  $gte: moment.tz(new Date(from), "Etc/UTC").add("5", "hours"),
+                  $lte: moment.tz(new Date(to), "Etc/UTC").add("5", "hours"),
+                },
+              })
+                .sort({ date: 1 })
+                .exec()
+                .then((data) => {
+                  return res.json({ status: 1, data: data });
+                })
+                .catch(console.log);
             }
+            else {
+                let api_result;
+                try {
+                  api_result = await axios.get(
+                    `${config.eodhistorical_price_api}${base_currency}${current_currency}.FOREX?api_token=${config.eodhistorical_token}&order=d&fmt=json&from=${new_from_str}&to=${to}`,
+                    {
+                      "Content-type": "application/json",
+                    }
+                  );
+                } catch (err) {
+                  return res.json({ status: 0 });
+                }
 
-            if (idx == datum.length && cur.getTime() >= from_date.getTime()) {
-              let newer_from = new Date(from);
-              newer_from.setDate(newer_from.getDate() - 50);
-              const newer_from_str = newer_from.toISOString().slice(0, 10);
+                console.log(api_result, "11111111111");
 
-              let new_api_result;
-              try {
-                new_api_result = await axios.get(
-                  `${config.eodhistorical_price_api}${base_currency}${current_currency}.FOREX?api_token=${config.eodhistorical_token}&order=d&fmt=json&from=${newer_from_str}&to=${from}`,
-                  {
-                    "Content-type": "application/json",
-                  }
-                );
-              } catch (err) {
-                return res.json({ status: 0 });
-              }
+                const datum = api_result.data;
+                let lst,
+                  cur,
+                  idx,
+                  cnt,
+                  from_date = new Date(from);
 
-              const new_datum = new_api_result.data;
-
-              if (new_datum.length == 0) {
                 for (
-                  ;
+                  cur = new Date(to), idx = 0, cnt = 0;
                   cur.getTime() >= from_date.getTime();
                   cur.setDate(cur.getDate() - 1)
                 ) {
-                  const result = await create(
-                    { ...datum[length - 1], date: cur },
-                    PriceModel
-                  );
+                  if (idx >= datum.length) {
+                    break;
+                  } else {
+                    const tmp_date = new Date(datum[idx].date);
+
+                    if (tmp_date.getTime() / DAY_TIME == cur.getTime() / DAY_TIME) {
+                      const result = await create(datum[idx], PriceModel);
+                      idx++;
+                    } else {
+                      if (idx != 0) {
+                        const result = await create(
+                          { ...datum[idx], date: cur },
+                          PriceModel
+                        );
+                      } else {
+                        cnt++;
+                      }
+                    }
+                  }
+                }
+
+                if (cnt > 0 && datum.length > 0) {
+                  for (
+                    lst = new Date(to);
+                    cnt > 0;
+                    lst.setDate(lst.getDate() - 1), cnt--
+                  ) {
+                    const result = await create(
+                      { ...datum[0], date: lst },
+                      PriceModel
+                    );
+                  }
+                }
+
+                if (idx == datum.length && cur.getTime() >= from_date.getTime()) {
+                  let newer_from = new Date(from);
+                  newer_from.setDate(newer_from.getDate() - 50);
+                  const newer_from_str = newer_from.toISOString().slice(0, 10);
+
+                  let new_api_result;
+                  try {
+                    new_api_result = await axios.get(
+                      `${config.eodhistorical_price_api}${base_currency}${current_currency}.FOREX?api_token=${config.eodhistorical_token}&order=d&fmt=json&from=${newer_from_str}&to=${from}`,
+                      {
+                        "Content-type": "application/json",
+                      }
+                    );
+                  } catch (err) {
+                    return res.json({ status: 0 });
+                  }
+
+                  const new_datum = new_api_result.data;
+
+                  if (new_datum.length == 0) {
+                    for (
+                      ;
+                      cur.getTime() >= from_date.getTime();
+                      cur.setDate(cur.getDate() - 1)
+                    ) {
+                      const result = await create(
+                        { ...datum[length - 1], date: cur },
+                        PriceModel
+                      );
                 }
               } else {
                 for (
@@ -799,76 +833,54 @@ class Routing {
                 return res.json({ status: 1, data: data });
               })
               .catch(console.log);
+            }
           } else {
-            let api_result;
-            try {
-              api_result = await axios.get(
-                `${config.eodhistorical_price_api}${base_currency}${current_currency}.FOREX?api_token=${config.eodhistorical_token}&order=d&fmt=json&from=${new_from_str}&to=${to}`,
-                {
-                  "Content-type": "application/json",
-                }
-              );
-            } catch (err) {
-              return res.json({ status: 0 });
-            }
+            const from_d = new Date(from);
+            const to_d = new Date(to);
+            const days = (to_d.getTime() - from_d.getTime()) / DAY_TIME + 1;
 
-            console.log(api_result, "2222222222222222");
-
-            const datum = api_result.data;
-            let lst,
-              cur,
-              idx,
-              cnt,
-              from_date = new Date(from);
-
-            for (
-              cur = new Date(to), idx = 0, cnt = 0;
-              cur.getTime() >= from_date.getTime();
-              cur.setDate(cur.getDate() - 1)
-            ) {
-              if (idx >= datum.length) {
-                break;
-              } else {
-                const tmp_date = new Date(datum[idx].date);
-
-                if (tmp_date.getTime() / DAY_TIME == cur.getTime() / DAY_TIME) {
-                  const result = await updatePrice(datum[idx], PriceModel);
-                  idx++;
-                } else {
-                  if (idx != 0) {
-                    const result = await updatePrice(
-                      { ...datum[idx], date: cur },
-                      PriceModel
-                    );
-                  } else {
-                    cnt++;
+            if (recent_data.length == days) {
+              console.log("---------------------", 0);
+              return res.json({ status: 1, data: recent_data });
+            } else {
+              if(current_currency === base_currency) {
+                let cur;
+                console.log('This is upsert place')
+                for(cur = new Date(from); cur.getTime() <= new Date(to).getTime(); cur.setDate(cur.getDate() + 1)) {
+                  const temp = {
+                    date: cur,
+                    open: 1,
+                    high: 1,
+                    low: 1,
+                    close: 1,
+                    adjusted_close: 1,
+                    volume: 1
                   }
+                  
+                  const result = await create(
+                    { ...temp, date: cur },
+                    PriceModel
+                  );
                 }
+  
+                return PriceModel.find({
+                  date: {
+                    $gte: moment.tz(new Date(from), "Etc/UTC").add("5", "hours"),
+                    $lte: moment.tz(new Date(to), "Etc/UTC").add("5", "hours"),
+                  },
+                })
+                  .sort({ date: 1 })
+                  .exec()
+                  .then((data) => {
+                    return res.json({ status: 1, data: data });
+                  })
+                  .catch(console.log);
               }
-            }
-
-            if (cnt > 0 && datum.length > 0) {
-              for (
-                lst = new Date(to);
-                cnt > 0;
-                lst.setDate(lst.getDate() - 1), cnt--
-              ) {
-                const result = await updatePrice(
-                  { ...datum[0], date: lst },
-                  PriceModel
-                );
-              }
-            }
-
-            if (idx == datum.length && cur.getTime() >= from_date.getTime()) {
-              let newer_from = new Date(from);
-              newer_from.setDate(newer_from.getDate() - 50);
-              const newer_from_str = newer_from.toISOString().slice(0, 10);
-
-              let new_api_result;
+              else {
+                let api_result;
               try {
-                new_api_result = await axios.get(
-                  `${config.eodhistorical_price_api}${base_currency}${current_currency}.FOREX?api_token=${config.eodhistorical_token}&order=d&fmt=json&from=${newer_from_str}&to=${from}`,
+                api_result = await axios.get(
+                  `${config.eodhistorical_price_api}${base_currency}${current_currency}.FOREX?api_token=${config.eodhistorical_token}&order=d&fmt=json&from=${new_from_str}&to=${to}`,
                   {
                     "Content-type": "application/json",
                   }
@@ -876,62 +888,129 @@ class Routing {
               } catch (err) {
                 return res.json({ status: 0 });
               }
-
-              const new_datum = new_api_result.data;
-
-              if (new_datum.length == 0) {
-                for (
-                  ;
-                  cur.getTime() >= from_date.getTime();
-                  cur.setDate(cur.getDate() - 1)
-                ) {
-                  const result = await updatePrice(
-                    { ...datum[length - 1], date: cur },
-                    PriceModel
-                  );
-                }
-              } else {
-                for (
-                  ;
-                  cur.getTime() >= from_date.getTime() && cnt == 0;
-                  cur.setDate(cur.getDate() - 1)
-                ) {
-                  const result = await updatePrice(
-                    { ...new_datum[0], date: cur },
-                    PriceModel
-                  );
-                }
-                if (cnt > 0) {
-                  for (
-                    lst = new Date(to);
-                    cnt > 0;
-                    lst.setDate(lst.getDate() - 1), cnt--
-                  ) {
-                    const result = await updatePrice(
-                      { ...new_datum[0], date: lst },
-                      PriceModel
-                    );
+  
+              console.log(api_result, "2222222222222222");
+  
+              const datum = api_result.data;
+              let lst,
+                cur,
+                idx,
+                cnt,
+                from_date = new Date(from);
+  
+              for (
+                cur = new Date(to), idx = 0, cnt = 0;
+                cur.getTime() >= from_date.getTime();
+                cur.setDate(cur.getDate() - 1)
+              ) {
+                if (idx >= datum.length) {
+                  break;
+                } else {
+                  const tmp_date = new Date(datum[idx].date);
+  
+                  if (tmp_date.getTime() / DAY_TIME == cur.getTime() / DAY_TIME) {
+                    const result = await updatePrice(datum[idx], PriceModel);
+                    idx++;
+                  } else {
+                    if (idx != 0) {
+                      const result = await updatePrice(
+                        { ...datum[idx], date: cur },
+                        PriceModel
+                      );
+                    } else {
+                      cnt++;
+                    }
                   }
                 }
               }
-            }
-
-            return PriceModel.find({
-              date: {
-                $gte: moment.tz(new Date(from), "Etc/UTC").add("5", "hours"),
-                $lte: moment.tz(new Date(to), "Etc/UTC").add("5", "hours"),
-              },
-            })
-              .sort({ date: 1 })
-              .exec()
-              .then((data) => {
-                return res.json({ status: 1, data: data });
+  
+              if (cnt > 0 && datum.length > 0) {
+                for (
+                  lst = new Date(to);
+                  cnt > 0;
+                  lst.setDate(lst.getDate() - 1), cnt--
+                ) {
+                  const result = await updatePrice(
+                    { ...datum[0], date: lst },
+                    PriceModel
+                  );
+                }
+              }
+  
+              if (idx == datum.length && cur.getTime() >= from_date.getTime()) {
+                let newer_from = new Date(from);
+                newer_from.setDate(newer_from.getDate() - 50);
+                const newer_from_str = newer_from.toISOString().slice(0, 10);
+  
+                let new_api_result;
+                try {
+                  new_api_result = await axios.get(
+                    `${config.eodhistorical_price_api}${base_currency}${current_currency}.FOREX?api_token=${config.eodhistorical_token}&order=d&fmt=json&from=${newer_from_str}&to=${from}`,
+                    {
+                      "Content-type": "application/json",
+                    }
+                  );
+                } catch (err) {
+                  return res.json({ status: 0 });
+                }
+  
+                const new_datum = new_api_result.data;
+  
+                if (new_datum.length == 0) {
+                  for (
+                    ;
+                    cur.getTime() >= from_date.getTime();
+                    cur.setDate(cur.getDate() - 1)
+                  ) {
+                    const result = await updatePrice(
+                      { ...datum[length - 1], date: cur },
+                      PriceModel
+                    );
+                  }
+                } else {
+                  for (
+                    ;
+                    cur.getTime() >= from_date.getTime() && cnt == 0;
+                    cur.setDate(cur.getDate() - 1)
+                  ) {
+                    const result = await updatePrice(
+                      { ...new_datum[0], date: cur },
+                      PriceModel
+                    );
+                  }
+                  if (cnt > 0) {
+                    for (
+                      lst = new Date(to);
+                      cnt > 0;
+                      lst.setDate(lst.getDate() - 1), cnt--
+                    ) {
+                      const result = await updatePrice(
+                        { ...new_datum[0], date: lst },
+                        PriceModel
+                      );
+                    }
+                  }
+                }
+              }
+  
+              return PriceModel.find({
+                date: {
+                  $gte: moment.tz(new Date(from), "Etc/UTC").add("5", "hours"),
+                  $lte: moment.tz(new Date(to), "Etc/UTC").add("5", "hours"),
+                },
               })
-              .catch(console.log);
+                .sort({ date: 1 })
+                .exec()
+                .then((data) => {
+                  return res.json({ status: 1, data: data });
+                })
+                .catch(console.log);
+              }
+            }
           }
-        } else {
-          return res.json({ status: 0, flag: 1 });
-        }
+        // } else {
+        //   return res.json({ status: 0, flag: 1 });
+        // }
       } else {
         return res.json({ status: 0, flag: 2 });
       }
