@@ -180,118 +180,139 @@ class Routing {
         });
       }
     } else if (req.path == "/calc_portfolio") {
-			let today_date = new Date();
-			today_date = today_date.toISOString().slice(0, 10)
+      const portfolio_id = req.body.portfolio_id;
+      const accessToken = req.headers.authorization;
+      const token = accessToken.split(" ")[1];
 
-			let user_id
-			let auth_key = req.body.auth_key
-			if(auth_key == "SECRET_BACKEND_IG_API") {
-				user_id = 1
-			}
-			else {
-				user_id = await sessionUpdate(req, SessionModel);
-			}
 
-			if (user_id) {
-				const result = await PortfolioModel.find({});
-			
-				for(let i=0; i<result.length; i++) {
-					const transaction = result[i].transaction
+      let user = await sessionUpdate(req, SessionModel);
 
-					result[i].position = {}
-					let position = {}
+      if (user) {
 
-					for(let j=0; j<transaction.length; j++) {
-						const name = transaction[j].name;
-						const ticker = transaction[j].ticker;
-						const exchange = transaction[j].exchange;
-						const quantity = transaction[j].quantity;
-						
-						if(!(`${ticker}-${exchange}` in position)) {
+        const base_currency = user.currency
+        let today_date = new Date().toISOString().slice(0, 10);
 
-							// let api_result = await axios.get(`${config.eodhistorical_price_api}${ticker}.${exchange}?from=${today_date}&to=${today_date}&period=d&fmt=json&api_token=${config.eodhistorical_token}`,
-							// 	{
-							// 		"Content-type": "application/json",
-							// 	}
-							// );
-							const parameter = {
-								ticker: ticker,
-								exchange: exchange,
-								from: today_date,
-								to: today_date,
-								auth_key: auth_key
-							}
+        const result = await PortfolioModel.findOne({ _id: portfolio_id });
 
-							let api_result = await axios.create({
-								headers: {
-									"Access-Control-Allow-Origin": "*",
-									'Content-Type': 'application/json'
-								}
-							}).post('https://faasd.tyap.cloud/function/userapi/get_price', parameter);
+        const transaction = result.transaction
 
-							// if(!api_result || api_result.data.length == 0) { 
-							// 	let temp_date = today_date;
-							// 	while(1) {
-							// 		temp_date = new Date(temp_date)
-							// 		temp_date.setDate(temp_date.getDate() - 1)
-							// 		temp_date = temp_date.toISOString().slice(0, 10)
-									
-							// 		api_result = await axios.get(`${config.eodhistorical_price_api}${ticker}.${exchange}?from=${temp_date}&to=${temp_date}&period=d&fmt=json&api_token=${config.eodhistorical_token}`,
-							// 			{
-							// 				"Content-type": "application/json",
-							// 			}
-							// 		);
+        let position = {}
 
-							// 		if(api_result && api_result.data.length > 0) { 
-							// 			break;
-							// 		}
-							// 	}
+        for (let j = 0; j < transaction.length; j++) {
+          const name = transaction[j].name;
+          const ticker = transaction[j].ticker;
+          const exchange = transaction[j].exchange;
+          const quantity = transaction[j].quantity;
+          const currency = transaction[j].currency;
 
-							// 	console.log(temp_date)
-							// }
-							
-							api_result = api_result.data.data
 
-							console.log(api_result)
+          if (!(`${ticker}-${exchange}` in position)) {
+            const parameter = {
+              ticker: ticker,
+              exchange: exchange,
+              from: today_date,
+              to: today_date
+            }
 
-							position[`${ticker}-${exchange}`] = {}
+            let api_result = await axios.create({
+              headers: {
+                "Access-Control-Allow-Origin": "*",
+                "Content-Type": "application/json",
+                "Authorization": 'Bearer ' + token
+              }
+            }).post('https://faasd.tyap.cloud/function/userapi/get_price', parameter);
 
-							position[`${ticker}-${exchange}`].name = name
-							position[`${ticker}-${exchange}`].ticker = ticker;
-							position[`${ticker}-${exchange}`].exchange = exchange;
-							position[`${ticker}-${exchange}`].price = api_result[0].adjusted_close;
-							position[`${ticker}-${exchange}`].quantity = Number(quantity);
-						}
-						else {
-							position[`${ticker}-${exchange}`].quantity = Number(position[`${ticker}-${exchange}`].quantity) + Number(quantity)
-						}
-					}
+            // let api_result = await axios.get(`${config.eodhistorical_price_api}${ticker}.${exchange}?from=${today_date}&to=${today_date}&period=d&fmt=json&api_token=${config.eodhistorical_token}`,
+            // 	{
+            // 		"Content-type": "application/json",
+            // 	}
+            // );
 
-					let total_value = 0
+            // if(!api_result || api_result.data.length == 0) { 
+            // 	let temp_date = today_date;
+            // 	while(1) {
+            // 		temp_date = new Date(temp_date)
+            // 		temp_date.setDate(temp_date.getDate() - 1)
+            // 		temp_date = temp_date.toISOString().slice(0, 10)
 
-					for (let [key, element] of Object.entries(position)) {
-						total_value += Number(element.quantity) * Number(element.price)
-					}
+            // 		api_result = await axios.get(`${config.eodhistorical_price_api}${ticker}.${exchange}?from=${temp_date}&to=${temp_date}&period=d&fmt=json&api_token=${config.eodhistorical_token}`,
+            // 			{
+            // 				"Content-type": "application/json",
+            // 			}
+            // 		);
 
-					console.log(total_value)
-					console.log(position)
+            // 		if(api_result && api_result.data.length > 0) { 
+            // 			break;
+            // 		}
+            // 	}
 
-					await PortfolioModel.updateOne(
-						{ _id: result[i]._id },
-						{ 
-							$set: { 
-								value: total_value,
-								position: position
-							} 
-						}
-					);
-				}
+            // 	console.log(temp_date)
+            // }
 
-				return res.json({ status: true });
-			}
-			else {
-				return res.json({ status: false });
-			}
+            api_result = api_result.data.data
+
+            console.log(api_result)
+
+            position[`${ticker}-${exchange}`] = {}
+
+            position[`${ticker}-${exchange}`].name = name
+            position[`${ticker}-${exchange}`].ticker = ticker;
+            position[`${ticker}-${exchange}`].exchange = exchange;
+            position[`${ticker}-${exchange}`].price = api_result[0].adjusted_close;
+            position[`${ticker}-${exchange}`].quantity = Number(quantity);
+            position[`${ticker}-${exchange}`].currency = currency
+
+          }
+          else {
+            position[`${ticker}-${exchange}`].quantity = Number(position[`${ticker}-${exchange}`].quantity) + Number(quantity)
+          }
+        }
+
+        let total_value = 0
+
+        for (let [key, element] of Object.entries(position)) {
+
+          const currency_param = {
+            base_currency: base_currency,
+            current_currency: element.currency,
+            from: today_date,
+            to: today_date
+          }
+
+          let currency_api_result = await axios.create({
+            headers: {
+              "Access-Control-Allow-Origin": "*",
+              "Content-Type": "application/json",
+              "Authorization": 'Bearer ' + token
+            }
+          }).post('https://faasd.tyap.cloud/function/userapi/get_currency', currency_param);
+
+          currency_api_result = currency_api_result.data.data
+          total_value += (Number(element.quantity) * Number(element.price)) / Number(currency_api_result[0].adjusted_close)
+        }
+
+        console.log(total_value)
+        console.log(position)
+
+        await PortfolioModel.updateOne(
+          { _id: portfolio_id },
+          {
+            $set: {
+              value: total_value,
+              position: position
+            }
+          },
+          { upsert: true, new: true, setDefaultsOnInsert: true }
+        );
+
+        const returnData = await PortfolioModel.findOne({ _id: portfolio_id });
+
+        return res.json({ status: true, data: returnData });
+      }
+      else {
+        return res.json({ status: false });
+      }
+
     } else if (req.path == "/new_portfolio") {
       const portfolio = req.body;
 
@@ -481,15 +502,8 @@ class Routing {
       to = new Date(to).toISOString().slice(0, 10);
 
       if (ticker !== undefined && exchange !== undefined) {
-        let user_id
-				
-				if(req.body.auth_key == "SECRET_BACKEND_IG_API") {
-					user_id = 1
-				}
-				else {
-					user_id = await sessionUpdate(req, SessionModel);
-				}
-				
+        let user_id = await sessionUpdate(req, SessionModel);
+
         if (user_id) {
           const collection_name = `${ticker}_${exchange}`;
           const PriceModel = mongoose.model(collection_name, priceSchema);
@@ -788,145 +802,145 @@ class Routing {
       if (current_currency !== undefined && base_currency !== undefined) {
         // const user_id = await sessionUpdate(req, SessionModel);
         // if (user_id) {
-          const collection_name = `${base_currency}_${current_currency}`;
-          const PriceModel = mongoose.model(collection_name, priceSchema);
+        const collection_name = `${base_currency}_${current_currency}`;
+        const PriceModel = mongoose.model(collection_name, priceSchema);
 
-          let recent_data = await PriceModel.find({
-            date: {
-              $gte: moment.tz(new Date(from), "Etc/UTC").add("5", "hours"),
-              $lte: moment.tz(new Date(to), "Etc/UTC").add("5", "hours"),
-            },
-          }); /*.select({ date: 1 }).exec();*/
-          const DAY_TIME = 24 * 60 * 60 * 1000;
+        let recent_data = await PriceModel.find({
+          date: {
+            $gte: moment.tz(new Date(from), "Etc/UTC").add("5", "hours"),
+            $lte: moment.tz(new Date(to), "Etc/UTC").add("5", "hours"),
+          },
+        }); /*.select({ date: 1 }).exec();*/
+        const DAY_TIME = 24 * 60 * 60 * 1000;
 
-          let new_from = new Date(from);
-          new_from.setDate(new_from.getDate() - 14);
-          const new_from_str = new_from.toISOString().slice(0, 10);
+        let new_from = new Date(from);
+        new_from.setDate(new_from.getDate() - 14);
+        const new_from_str = new_from.toISOString().slice(0, 10);
 
-          if (recent_data.length === 0) {
-            if(current_currency === base_currency) {
-              let cur;
-              console.log('This is place')
-              for(cur = new Date(from); cur.getTime() <= new Date(to).getTime(); cur.setDate(cur.getDate() + 1)) {
-                const temp = {
-                  date: cur,
-                  open: 1,
-                  high: 1,
-                  low: 1,
-                  close: 1,
-                  adjusted_close: 1,
-                  volume: 1
+        if (recent_data.length === 0) {
+          if (current_currency === base_currency) {
+            let cur;
+            console.log('This is place')
+            for (cur = new Date(from); cur.getTime() <= new Date(to).getTime(); cur.setDate(cur.getDate() + 1)) {
+              const temp = {
+                date: cur,
+                open: 1,
+                high: 1,
+                low: 1,
+                close: 1,
+                adjusted_close: 1,
+                volume: 1
+              }
+
+              const result = await create(
+                { ...temp, date: cur },
+                PriceModel
+              );
+            }
+
+            return PriceModel.find({
+              date: {
+                $gte: moment.tz(new Date(from), "Etc/UTC").add("5", "hours"),
+                $lte: moment.tz(new Date(to), "Etc/UTC").add("5", "hours"),
+              },
+            })
+              .sort({ date: 1 })
+              .exec()
+              .then((data) => {
+                return res.json({ status: 1, data: data });
+              })
+              .catch(console.log);
+          }
+          else {
+            let api_result;
+            try {
+              api_result = await axios.get(
+                `${config.eodhistorical_price_api}${base_currency}${current_currency}.FOREX?api_token=${config.eodhistorical_token}&order=d&fmt=json&from=${new_from_str}&to=${to}`,
+                {
+                  "Content-type": "application/json",
                 }
-                
+              );
+            } catch (err) {
+              return res.json({ status: 0 });
+            }
+
+            console.log(api_result, "11111111111");
+
+            const datum = api_result.data;
+            let lst,
+              cur,
+              idx,
+              cnt,
+              from_date = new Date(from);
+
+            for (
+              cur = new Date(to), idx = 0, cnt = 0;
+              cur.getTime() >= from_date.getTime();
+              cur.setDate(cur.getDate() - 1)
+            ) {
+              if (idx >= datum.length) {
+                break;
+              } else {
+                const tmp_date = new Date(datum[idx].date);
+
+                if (tmp_date.getTime() / DAY_TIME == cur.getTime() / DAY_TIME) {
+                  const result = await create(datum[idx], PriceModel);
+                  idx++;
+                } else {
+                  if (idx != 0) {
+                    const result = await create(
+                      { ...datum[idx], date: cur },
+                      PriceModel
+                    );
+                  } else {
+                    cnt++;
+                  }
+                }
+              }
+            }
+
+            if (cnt > 0 && datum.length > 0) {
+              for (
+                lst = new Date(to);
+                cnt > 0;
+                lst.setDate(lst.getDate() - 1), cnt--
+              ) {
                 const result = await create(
-                  { ...temp, date: cur },
+                  { ...datum[0], date: lst },
                   PriceModel
                 );
               }
-
-              return PriceModel.find({
-                date: {
-                  $gte: moment.tz(new Date(from), "Etc/UTC").add("5", "hours"),
-                  $lte: moment.tz(new Date(to), "Etc/UTC").add("5", "hours"),
-                },
-              })
-                .sort({ date: 1 })
-                .exec()
-                .then((data) => {
-                  return res.json({ status: 1, data: data });
-                })
-                .catch(console.log);
             }
-            else {
-                let api_result;
-                try {
-                  api_result = await axios.get(
-                    `${config.eodhistorical_price_api}${base_currency}${current_currency}.FOREX?api_token=${config.eodhistorical_token}&order=d&fmt=json&from=${new_from_str}&to=${to}`,
-                    {
-                      "Content-type": "application/json",
-                    }
-                  );
-                } catch (err) {
-                  return res.json({ status: 0 });
-                }
 
-                console.log(api_result, "11111111111");
+            if (idx == datum.length && cur.getTime() >= from_date.getTime()) {
+              let newer_from = new Date(from);
+              newer_from.setDate(newer_from.getDate() - 50);
+              const newer_from_str = newer_from.toISOString().slice(0, 10);
 
-                const datum = api_result.data;
-                let lst,
-                  cur,
-                  idx,
-                  cnt,
-                  from_date = new Date(from);
+              let new_api_result;
+              try {
+                new_api_result = await axios.get(
+                  `${config.eodhistorical_price_api}${base_currency}${current_currency}.FOREX?api_token=${config.eodhistorical_token}&order=d&fmt=json&from=${newer_from_str}&to=${from}`,
+                  {
+                    "Content-type": "application/json",
+                  }
+                );
+              } catch (err) {
+                return res.json({ status: 0 });
+              }
 
+              const new_datum = new_api_result.data;
+
+              if (new_datum.length == 0) {
                 for (
-                  cur = new Date(to), idx = 0, cnt = 0;
+                  ;
                   cur.getTime() >= from_date.getTime();
                   cur.setDate(cur.getDate() - 1)
                 ) {
-                  if (idx >= datum.length) {
-                    break;
-                  } else {
-                    const tmp_date = new Date(datum[idx].date);
-
-                    if (tmp_date.getTime() / DAY_TIME == cur.getTime() / DAY_TIME) {
-                      const result = await create(datum[idx], PriceModel);
-                      idx++;
-                    } else {
-                      if (idx != 0) {
-                        const result = await create(
-                          { ...datum[idx], date: cur },
-                          PriceModel
-                        );
-                      } else {
-                        cnt++;
-                      }
-                    }
-                  }
-                }
-
-                if (cnt > 0 && datum.length > 0) {
-                  for (
-                    lst = new Date(to);
-                    cnt > 0;
-                    lst.setDate(lst.getDate() - 1), cnt--
-                  ) {
-                    const result = await create(
-                      { ...datum[0], date: lst },
-                      PriceModel
-                    );
-                  }
-                }
-
-                if (idx == datum.length && cur.getTime() >= from_date.getTime()) {
-                  let newer_from = new Date(from);
-                  newer_from.setDate(newer_from.getDate() - 50);
-                  const newer_from_str = newer_from.toISOString().slice(0, 10);
-
-                  let new_api_result;
-                  try {
-                    new_api_result = await axios.get(
-                      `${config.eodhistorical_price_api}${base_currency}${current_currency}.FOREX?api_token=${config.eodhistorical_token}&order=d&fmt=json&from=${newer_from_str}&to=${from}`,
-                      {
-                        "Content-type": "application/json",
-                      }
-                    );
-                  } catch (err) {
-                    return res.json({ status: 0 });
-                  }
-
-                  const new_datum = new_api_result.data;
-
-                  if (new_datum.length == 0) {
-                    for (
-                      ;
-                      cur.getTime() >= from_date.getTime();
-                      cur.setDate(cur.getDate() - 1)
-                    ) {
-                      const result = await create(
-                        { ...datum[length - 1], date: cur },
-                        PriceModel
-                      );
+                  const result = await create(
+                    { ...datum[length - 1], date: cur },
+                    PriceModel
+                  );
                 }
               } else {
                 for (
@@ -966,51 +980,51 @@ class Routing {
                 return res.json({ status: 1, data: data });
               })
               .catch(console.log);
-            }
-          } else {
-            const from_d = new Date(from);
-            const to_d = new Date(to);
-            const days = (to_d.getTime() - from_d.getTime()) / DAY_TIME + 1;
+          }
+        } else {
+          const from_d = new Date(from);
+          const to_d = new Date(to);
+          const days = (to_d.getTime() - from_d.getTime()) / DAY_TIME + 1;
 
-            if (recent_data.length == days) {
-              console.log("---------------------", 0);
-              return res.json({ status: 1, data: recent_data });
-            } else {
-              if(current_currency === base_currency) {
-                let cur;
-                console.log('This is upsert place')
-                for(cur = new Date(from); cur.getTime() <= new Date(to).getTime(); cur.setDate(cur.getDate() + 1)) {
-                  const temp = {
-                    date: cur,
-                    open: 1,
-                    high: 1,
-                    low: 1,
-                    close: 1,
-                    adjusted_close: 1,
-                    volume: 1
-                  }
-                  
-                  const result = await create(
-                    { ...temp, date: cur },
-                    PriceModel
-                  );
+          if (recent_data.length == days) {
+            console.log("---------------------", 0);
+            return res.json({ status: 1, data: recent_data });
+          } else {
+            if (current_currency === base_currency) {
+              let cur;
+              console.log('This is upsert place')
+              for (cur = new Date(from); cur.getTime() <= new Date(to).getTime(); cur.setDate(cur.getDate() + 1)) {
+                const temp = {
+                  date: cur,
+                  open: 1,
+                  high: 1,
+                  low: 1,
+                  close: 1,
+                  adjusted_close: 1,
+                  volume: 1
                 }
-  
-                return PriceModel.find({
-                  date: {
-                    $gte: moment.tz(new Date(from), "Etc/UTC").add("5", "hours"),
-                    $lte: moment.tz(new Date(to), "Etc/UTC").add("5", "hours"),
-                  },
-                })
-                  .sort({ date: 1 })
-                  .exec()
-                  .then((data) => {
-                    return res.json({ status: 1, data: data });
-                  })
-                  .catch(console.log);
+
+                const result = await create(
+                  { ...temp, date: cur },
+                  PriceModel
+                );
               }
-              else {
-                let api_result;
+
+              return PriceModel.find({
+                date: {
+                  $gte: moment.tz(new Date(from), "Etc/UTC").add("5", "hours"),
+                  $lte: moment.tz(new Date(to), "Etc/UTC").add("5", "hours"),
+                },
+              })
+                .sort({ date: 1 })
+                .exec()
+                .then((data) => {
+                  return res.json({ status: 1, data: data });
+                })
+                .catch(console.log);
+            }
+            else {
+              let api_result;
               try {
                 api_result = await axios.get(
                   `${config.eodhistorical_price_api}${base_currency}${current_currency}.FOREX?api_token=${config.eodhistorical_token}&order=d&fmt=json&from=${new_from_str}&to=${to}`,
@@ -1021,16 +1035,16 @@ class Routing {
               } catch (err) {
                 return res.json({ status: 0 });
               }
-  
+
               console.log(api_result, "2222222222222222");
-  
+
               const datum = api_result.data;
               let lst,
                 cur,
                 idx,
                 cnt,
                 from_date = new Date(from);
-  
+
               for (
                 cur = new Date(to), idx = 0, cnt = 0;
                 cur.getTime() >= from_date.getTime();
@@ -1040,7 +1054,7 @@ class Routing {
                   break;
                 } else {
                   const tmp_date = new Date(datum[idx].date);
-  
+
                   if (tmp_date.getTime() / DAY_TIME == cur.getTime() / DAY_TIME) {
                     const result = await updatePrice(datum[idx], PriceModel);
                     idx++;
@@ -1056,7 +1070,7 @@ class Routing {
                   }
                 }
               }
-  
+
               if (cnt > 0 && datum.length > 0) {
                 for (
                   lst = new Date(to);
@@ -1069,12 +1083,12 @@ class Routing {
                   );
                 }
               }
-  
+
               if (idx == datum.length && cur.getTime() >= from_date.getTime()) {
                 let newer_from = new Date(from);
                 newer_from.setDate(newer_from.getDate() - 50);
                 const newer_from_str = newer_from.toISOString().slice(0, 10);
-  
+
                 let new_api_result;
                 try {
                   new_api_result = await axios.get(
@@ -1086,9 +1100,9 @@ class Routing {
                 } catch (err) {
                   return res.json({ status: 0 });
                 }
-  
+
                 const new_datum = new_api_result.data;
-  
+
                 if (new_datum.length == 0) {
                   for (
                     ;
@@ -1125,7 +1139,7 @@ class Routing {
                   }
                 }
               }
-  
+
               return PriceModel.find({
                 date: {
                   $gte: moment.tz(new Date(from), "Etc/UTC").add("5", "hours"),
@@ -1138,9 +1152,9 @@ class Routing {
                   return res.json({ status: 1, data: data });
                 })
                 .catch(console.log);
-              }
             }
           }
+        }
         // } else {
         //   return res.json({ status: 0, flag: 1 });
         // }
