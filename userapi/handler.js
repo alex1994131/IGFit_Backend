@@ -194,6 +194,8 @@ class Routing {
           const user_record = await UserModel.findOne({ _id: user_id })
           const base_currency = user_record.currency
 
+          let fx_rates = {}
+
           result[i].position = {}
           let position = {}
 
@@ -221,6 +223,10 @@ class Routing {
               }).post('https://faasd.tyap.cloud/function/userapi/get_price', parameter);
               // }).post('http://localhost:3000/get_price', parameter);
 
+              console.log('-------------------Calc Portfolio-------------')
+              console.log(api_result)
+              console.log('--------------------------------------------- ')
+
               api_result = api_result.data.data
 
               console.log(api_result)
@@ -242,24 +248,38 @@ class Routing {
           let total_value = 0
 
           for (let [key, element] of Object.entries(position)) {
-            const currency_param = {
-              base_currency: base_currency,
-              current_currency: element.currency,
-              from: today_date,
-              to: today_date,
-              auth_key: auth_key
+
+            let fx;
+
+            if (!(element.currency in fx_rates)) {
+
+              const currency_param = {
+                base_currency: base_currency,
+                current_currency: element.currency,
+                from: today_date,
+                to: today_date,
+                auth_key: auth_key
+              }
+
+              let currency_api_result = await axios.create({
+                headers: {
+                  "Access-Control-Allow-Origin": "*",
+                  "Content-Type": "application/json"
+                }
+              }).post('https://faasd.tyap.cloud/function/userapi/get_currency', currency_param);
+              // }).post('http://localhost:3000/get_currency', currency_param);
+
+
+              currency_api_result = currency_api_result.data.data
+
+              fx_rates[element.currency] = currency_api_result[0].adjusted_close
+              fx = currency_api_result[0].adjusted_close
+
+            } else {
+              fx = fx_rates[element.currency]
             }
 
-            let currency_api_result = await axios.create({
-              headers: {
-                "Access-Control-Allow-Origin": "*",
-                "Content-Type": "application/json"
-              }
-            }).post('https://faasd.tyap.cloud/function/userapi/get_currency', currency_param);
-            // }).post('http://localhost:3000/get_currency', currency_param);
-
-            currency_api_result = currency_api_result.data.data
-            total_value += (Number(element.quantity) * Number(element.price)) / Number(currency_api_result[0].adjusted_close)
+            total_value += (Number(element.quantity) * Number(element.price)) / fx
           }
 
           console.log(total_value)
@@ -295,6 +315,8 @@ class Routing {
 
           const transaction = result.transaction
 
+          let fx_rates = {}
+
           let position = {}
 
           for (let j = 0; j < transaction.length; j++) {
@@ -320,6 +342,11 @@ class Routing {
                   "Authorization": 'Bearer ' + token
                 }
               }).post('https://faasd.tyap.cloud/function/userapi/get_price', parameter);
+              // }).post('http://localhost:3000/get_price', parameter);
+
+              console.log('-------------------Calc Portfolio-------------')
+              console.log(api_result)
+              console.log('--------------------------------------------- ')
 
               api_result = api_result.data.data
 
@@ -344,23 +371,36 @@ class Routing {
 
           for (let [key, element] of Object.entries(position)) {
 
-            const currency_param = {
-              base_currency: base_currency,
-              current_currency: element.currency,
-              from: today_date,
-              to: today_date
+            let fx;
+
+            if (!(element.currency in fx_rates)) {
+
+              const currency_param = {
+                base_currency: base_currency,
+                current_currency: element.currency,
+                from: today_date,
+                to: today_date
+              }
+
+              let currency_api_result = await axios.create({
+                headers: {
+                  "Access-Control-Allow-Origin": "*",
+                  "Content-Type": "application/json",
+                  "Authorization": 'Bearer ' + token
+                }
+              }).post('https://faasd.tyap.cloud/function/userapi/get_currency', currency_param);
+              // }).post('http://localhost:3000/get_currency', currency_param);
+
+              currency_api_result = currency_api_result.data.data
+
+              fx_rates[element.currency] = currency_api_result[0].adjusted_close
+              fx = currency_api_result[0].adjusted_close
+
+            } else {
+              fx = fx_rates[element.currency]
             }
 
-            let currency_api_result = await axios.create({
-              headers: {
-                "Access-Control-Allow-Origin": "*",
-                "Content-Type": "application/json",
-                "Authorization": 'Bearer ' + token
-              }
-            }).post('https://faasd.tyap.cloud/function/userapi/get_currency', currency_param);
-
-            currency_api_result = currency_api_result.data.data
-            total_value += (Number(element.quantity) * Number(element.price)) / Number(currency_api_result[0].adjusted_close)
+            total_value += (Number(element.quantity) * Number(element.price)) / fx
           }
 
           console.log(total_value)
@@ -610,11 +650,13 @@ class Routing {
                   "Content-type": "application/json",
                 }
               );
+
+              console.log('-------------------Get Price-------------')
+              console.log(api_result)
+              console.log('--------------------------------------------- ')
             } catch (err) {
               return res.json({ status: 0 });
             }
-
-            console.log("-----------------", 1);
 
             const datum = api_result.data;
             let cur,
@@ -674,6 +716,10 @@ class Routing {
                     "Content-type": "application/json",
                   }
                 );
+
+                console.log('-------------------Get Price New-------------')
+                console.log(new_api_result)
+                console.log('--------------------------------------------- ')
               } catch (err) {
                 return res.json({ status: 0 });
               }
@@ -746,6 +792,10 @@ class Routing {
                     "Content-type": "application/json",
                   }
                 );
+
+                console.log('-------------------Get Price-------------')
+                console.log(api_result)
+                console.log('--------------------------------------------- ')
               } catch (err) {
                 return res.json({ status: 0 });
               }
@@ -813,6 +863,10 @@ class Routing {
                       "Content-type": "application/json",
                     }
                   );
+
+                  console.log('-------------------Get Price New-------------')
+                  console.log(new_api_result)
+                  console.log('--------------------------------------------- ')
                 } catch (err) {
                   return res.json({ status: 0 });
                 }
