@@ -180,7 +180,7 @@ class Routing {
         });
       }
     } else if (req.path == "/calc_portfolio") {
-      let auth_key = req.body.auth_key
+      let auth_key = req.query.auth_key
       if (auth_key && auth_key == "SECRET_BACKEND_IG_API") {
         console.log('-----------Cron JOB--------------')
         let today_date = new Date();
@@ -231,14 +231,16 @@ class Routing {
 
               console.log(api_result)
 
-              position[`${ticker}-${exchange}`] = {}
+              if (api_result) {
+                position[`${ticker}-${exchange}`] = {}
 
-              position[`${ticker}-${exchange}`].name = name
-              position[`${ticker}-${exchange}`].ticker = ticker;
-              position[`${ticker}-${exchange}`].exchange = exchange;
-              position[`${ticker}-${exchange}`].price = api_result[0].adjusted_close;
-              position[`${ticker}-${exchange}`].quantity = Number(quantity);
-              position[`${ticker}-${exchange}`].currency = currency;
+                position[`${ticker}-${exchange}`].name = name
+                position[`${ticker}-${exchange}`].ticker = ticker;
+                position[`${ticker}-${exchange}`].exchange = exchange;
+                position[`${ticker}-${exchange}`].price = api_result[0].adjusted_close;
+                position[`${ticker}-${exchange}`].quantity = Number(quantity);
+                position[`${ticker}-${exchange}`].currency = currency
+              }
             }
             else {
               position[`${ticker}-${exchange}`].quantity = Number(position[`${ticker}-${exchange}`].quantity) + Number(quantity)
@@ -398,6 +400,10 @@ class Routing {
               // }).post('http://localhost:3000/get_currency', currency_param);
 
               currency_api_result = currency_api_result.data.data
+
+              if (!currency_api_result) {
+                continue;
+              }
 
               fx_rates[element.currency] = currency_api_result[0].adjusted_close
               fx = currency_api_result[0].adjusted_close
