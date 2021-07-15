@@ -180,7 +180,7 @@ class Routing {
         });
       }
     } else if (req.path == "/calc_portfolio") {
-      let auth_key = req.query.auth_key
+      let auth_key = req.body.auth_key
       if (auth_key && auth_key == "SECRET_BACKEND_IG_API") {
         console.log('-----------Cron JOB--------------')
         let today_date = new Date();
