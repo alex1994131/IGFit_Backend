@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "dgSpecHash": "gUmS/2v6RLPp16A/siLyk4SDP6tqaQPj7JCiPD5SbTr2dD2kFHsmuj7EsW/2T4p4QdVGqBUYPBsT2eF+Yqv2kA==",
+  "success": true,
+  "projectFilePath": "e:\\works\\projects\\IGFit\\IGFit_Backend\\template\\csharp\\function\\Function.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\Majesty\\.nuget\\packages\\microsoft.netcore.platforms\\1.1.0\\microsoft.netcore.platforms.1.1.0.nupkg.sha512",
+    "C:\\Users\\Majesty\\.nuget\\packages\\netstandard.library\\2.0.3\\netstandard.library.2.0.3.nupkg.sha512"
+  ],
+  "logs": []
+}
